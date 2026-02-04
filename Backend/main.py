@@ -1,7 +1,10 @@
 from fastapi import FastAPI, Request, HTTPException, Header
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 import os
+import json
+import httpx
 from dotenv import load_dotenv
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -10,23 +13,54 @@ load_dotenv()
 
 app = FastAPI(title="ELEVEN CHAT - Revenue Intelligence AI Gateway")
 
-# Segurança: O segredo que você vai colocar no cabeçalho customizado na ElevenLabs
-# Nome do Cabeçalho: X-Secret-Key
-# Valor: eleven_chat_master_secret
-SECRET_KEY = "eleven_chat_master_secret"
+# Configuração de CORS para permitir que o Frontend (Next.js) acesse o Backend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Em produção, coloque o seu domínio da Vercel
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# Inicialização Firebase (Opcional por enquanto para não travar o teste)
+# Segurança e Chaves
+SECRET_KEY = "eleven_chat_master_secret"
+ELEVENLABS_API_KEY = os.getenv("ELEVEN_API_KEY") # Precisamos disso no .env
+
+# Inicialização Firebase
 db = None
 try:
-    if os.path.exists("firebase-key.json"):
-        cred = credentials.Certificate("firebase-key.json")
+    # 1. Tenta carregar de variável de ambiente (Produção)
+    firebase_json = os.getenv("FIREBASE_CREDENTIALS")
+    if firebase_json:
+        cred_dict = json.loads(firebase_json)
+        cred = credentials.Certificate(cred_dict)
         firebase_admin.initialize_app(cred)
         db = firestore.client()
-        print("Firebase conectado com sucesso!")
+        print("✅ FIREBASE CONECTADO (AMBIENTE)!")
+    # 2. Tenta carregar de arquivo local (Desenvolvimento)
     else:
-        print("Aviso: firebase-key.json não encontrado. Rodando em modo de teste sem DB.")
+        cred_path = os.path.join(os.getcwd(), "firebase-key.json")
+        if os.path.exists(cred_path):
+            cred = credentials.Certificate(cred_path)
+            firebase_admin.initialize_app(cred)
+            db = firestore.client()
+            print("✅ FIREBASE CONECTADO (ARQUIVO)!")
+        else:
+            print("❌ ERRO: Nenhuma credencial Firebase encontrada.")
 except Exception as e:
-    print(f"Erro ao conectar Firebase: {e}")
+    print(f"❌ Erro crítico ao conectar Firebase: {e}")
+
+# Modelos
+class EntityConfig(BaseModel):
+    name: str
+    description: str
+
+class AgentSetup(BaseModel):
+    agent_id: str
+    area: str
+    bot_name: str
+    prompt: str
+    entities: List[EntityConfig]
 
 class ElevenLabsAnalysis(BaseModel):
     data_collection: Dict[str, Any]
@@ -41,69 +75,102 @@ class WebhookPayload(BaseModel):
 
 @app.get("/")
 async def root():
-    return {"status": "online", "name": "ELEVEN CHAT", "mcp_enabled": True}
+    return {
+        "status": "online", 
+        "firebase_connected": db is not None,
+        "elevenlabs_configured": bool(ELEVENLABS_API_KEY)
+    }
+
+@app.post("/api/v1/agent/setup")
+async def setup_agent(setup: AgentSetup):
+    """
+    Recebe as configurações do Frontend e atualiza a ElevenLabs.
+    """
+    if not ELEVENLABS_API_KEY:
+        raise HTTPException(status_code=500, detail="ElevenLabs API Key não configurada no .env")
+
+    # 1. Salva no Firebase para o Dashboard saber como o robô está configurado
+    if db:
+        db.collection("settings").document("current_agent").set(setup.dict())
+
+    # 2. Atualiza a ElevenLabs via API deles
+    # O objetivo aqui é atualizar o 'analysis_config' (data collection) e o 'system_prompt'
+    url = f"https://api.elevenlabs.io/v1/convai/agents/{setup.agent_id}"
+    
+    headers = {
+        "xi-api-key": ELEVENLABS_API_KEY,
+        "Content-Type": "application/json"
+    }
+    
+    # Criamos o payload de atualização
+    payload = {
+        "conversation_config": {
+            "agent": {
+                "prompt": {
+                    "prompt": f"Seu nome é {setup.bot_name}. Você atua na área de {setup.area}. {setup.prompt}"
+                }
+            }
+        }
+    }
+    
+    # Adicionamos a extração de dados dinâmica (entities)
+    # Na ElevenLabs, isso fica em analysis_config.data_collection
+    data_collection = {}
+    for entity in setup.entities:
+        data_collection[entity.name] = {
+            "type": "string",
+            "description": entity.description
+        }
+    
+    payload["analysis_config"] = {
+        "data_collection": data_collection
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.patch(url, json=payload, headers=headers)
+        if response.status_code != 200:
+            print(f"❌ Erro ElevenLabs: {response.text}")
+            raise HTTPException(status_code=response.status_code, detail="Erro ao atualizar ElevenLabs")
+            
+    return {"status": "success", "message": "Robô atualizado com as novas captações!"}
 
 @app.post("/api/v1/webhooks/elevenlabs")
-async def handle_elevenlabs_webhook(payload: WebhookPayload):
+async def handle_elevenlabs_webhook(payload: WebhookPayload, x_secret_key: Optional[str] = Header(None)):
     data = payload.analysis.data_collection
     insight = {
         "conversation_id": payload.conversation_id,
         "agent_id": payload.agent_id,
-        "customer_name": data.get("customer_name"),
-        "location": data.get("location"),
-        "price_objection": data.get("price_objection", False),
         "summary": payload.analysis.summary,
+        "sentiment": payload.analysis.sentiment,
+        "extracted_data": data,
         "timestamp": firestore.SERVER_TIMESTAMP if db else None
     }
     
-    print(f"WEBHOOK RECEBIDO: {insight}")
-    
     if db:
-        db.collection("interactions").add(insight)
-        return {"status": "success", "message": "Insight salvo no Firebase"}
-    return {"status": "success", "message": "Recebido (Simulação: Sem Firebase)"}
+        db.collection("interactions").document(payload.conversation_id).set(insight)
+        if "customer_name" in data or "nome" in data:
+            db.collection("leads").add({**insight, "type": "detected_lead"})
+        return {"status": "success", "message": "Dados salvos"}
+            
+    return {"status": "success"}
 
-# ENDPOINT MCP (PROTOCOL)
 @app.post("/api/v1/mcp")
-async def mcp_handler(request: Request, x_secret_key: Optional[str] = Header(None)):
-    """
-    Protocolo MCP da ElevenLabs.
-    Lida com handshake e execução de ferramentas.
-    """
-    # Validação de segurança simples
-    if x_secret_key != SECRET_KEY:
-        print(f"Aviso: Tentativa de acesso sem chave correta. Recebeu: {x_secret_key}")
-        # Por enquanto vamos deixar passar no teste se você esquecer o header, 
-        # mas no SaaS real isso é obrigatório.
-        pass
-
-    print(f"--- MCP HANDSHAKE DETECTADO ---")
-    try:
-        body = await request.json()
-        print(f"PAYLOAD DA ELEVENLABS: {body}")
-        
-        # Resposta simplificada para handshake
-        response = {
-            "tools": [
-                {
-                    "name": "check_stock_and_prices",
-                    "description": "Consulta o sistema da Eleven Chat para ver preços e disponibilidade de produtos.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "product_name": {"type": "string", "description": "Nome do produto para consultar"}
-                        },
-                        "required": ["product_name"]
-                    }
+async def mcp_handler(request: Request):
+    return {
+        "tools": [
+            {
+                "name": "verificar_estoque",
+                "description": "Consulta o estoque e preços reais.",
+                "parameters": {
+                    "type": "object",
+                    "properties": { "produto": {"type": "string"} },
+                    "required": ["produto"]
                 }
-            ]
-        }
-        print(f"ENVIANDO FERRAMENTAS: {[t['name'] for t in response['tools']]}")
-        return response
-    except Exception as e:
-        print(f"Erro no MCP: {e}")
-        return {"tools": []}
+            }
+        ]
+    }
 
 if __name__ == "__main__":
     import uvicorn
+    # Rodando na porta 8000 para o Localtunnel
     uvicorn.run(app, host="0.0.0.0", port=8000)

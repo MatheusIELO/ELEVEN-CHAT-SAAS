@@ -1,7 +1,7 @@
 fastapi
 uvicorn
 python-dotenv
-httpx
-pydantic
 firebase-admin
-elevenlabs
+pydantic
+httpx
+gunicorn
