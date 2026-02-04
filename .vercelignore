@@ -4,3 +4,6 @@ backend/
 requirements.txt
 Procfile
 railway.json
+main.py
+firebase-key.json
+.env
