@@ -39,7 +39,7 @@ try:
         print("✅ FIREBASE CONECTADO (AMBIENTE)!")
     # 2. Tenta carregar de arquivo local (Desenvolvimento)
     else:
-        cred_path = os.path.join(os.path.dirname(__file__), "firebase-key.json")
+        cred_path = os.path.join(os.getcwd(), "firebase-key.json")
         if os.path.exists(cred_path):
             cred = credentials.Certificate(cred_path)
             firebase_admin.initialize_app(cred)
