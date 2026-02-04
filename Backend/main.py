@@ -39,7 +39,7 @@ try:
         print("✅ FIREBASE CONECTADO (AMBIENTE)!")
     # 2. Tenta carregar de arquivo local (Desenvolvimento)
     else:
-        cred_path = os.path.join(os.getcwd(), "firebase-key.json")
+        cred_path = os.path.join(os.path.dirname(__file__), "firebase-key.json")
         if os.path.exists(cred_path):
             cred = credentials.Certificate(cred_path)
             firebase_admin.initialize_app(cred)
@@ -254,6 +254,37 @@ async def get_interactions(user_id: str = Header(None), limit: int = 10):
             d["timestamp"] = d["timestamp"].isoformat()
         results.append(d)
     return results
+
+# --- WHATSAPP INTEGRATION (META API) ---
+
+@app.get("/api/v1/whatsapp/webhook")
+async def verify_whatsapp_webhook(request: Request):
+    """
+    Verificação de Webhook da Meta (App Dashboard).
+    """
+    mode = request.query_params.get("hub.mode")
+    token = request.query_params.get("hub.verify_token")
+    challenge = request.query_params.get("hub.challenge")
+    
+    # Você deve configurar um WHATSAPP_VERIFY_TOKEN no seu .env
+    if mode == "subscribe" and token == os.getenv("WHATSAPP_VERIFY_TOKEN"):
+        return int(challenge)
+    return HTTPException(status_code=403, detail="Token de verificação inválido")
+
+@app.post("/api/v1/whatsapp/webhook")
+async def handle_whatsapp_webhook(request: Request):
+    """
+    Recebe mensagens do WhatsApp e encaminha para a ElevenLabs.
+    """
+    body = await request.json()
+    # Lógica de extração de mensagem e resposta via ElevenLabs virá aqui
+    # 1. Identifica do número do cliente
+    # 2. Busca o Agent ID associado
+    # 3. Envia para ElevenLabs Chat
+    # 4. Responde via Meta API
+    return {"status": "received"}
+
+# --- END WHATSAPP ---
 
 if __name__ == "__main__":
     import uvicorn
