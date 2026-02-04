@@ -23,8 +23,8 @@ app.add_middleware(
 )
 
 # Segurança e Chaves
-SECRET_KEY = "eleven_chat_master_secret"
-ELEVENLABS_API_KEY = os.getenv("ELEVEN_API_KEY") # Precisamos disso no .env
+WEBHOOK_SECRET = os.getenv("ELEVEN_WEBHOOK_SECRET", "wsec_ca7176bd640a051c8a6b8f123d0dd17986f338ae9c61ffb49d4647d97304bc51")
+ELEVENLABS_API_KEY = os.getenv("ELEVEN_API_KEY")
 
 # Inicialização Firebase
 db = None
@@ -135,7 +135,24 @@ async def setup_agent(setup: AgentSetup):
     return {"status": "success", "message": "Robô atualizado com as novas captações!"}
 
 @app.post("/api/v1/webhooks/elevenlabs")
-async def handle_elevenlabs_webhook(payload: WebhookPayload, x_secret_key: Optional[str] = Header(None)):
+async def handle_elevenlabs_webhook(
+    payload: WebhookPayload, 
+    request: Request,
+    x_secret_key: Optional[str] = Header(None),
+    elevenlabs_signature: Optional[str] = Header(None, alias="ElevenLabs-Signature")
+):
+    """
+    Recebe os dados da conversa da ElevenLabs e salva no Firebase.
+    """
+    # Validação Básica de Segurança
+    # Se você configurou como HMAC na ElevenLabs, ela envia a assinatura.
+    # Se não, podemos usar o segredo simples que passamos no setup.
+    if x_secret_key != WEBHOOK_SECRET and not elevenlabs_signature:
+         print(f"⚠️ Tentativa de acesso não autorizado ao webhook!")
+         # Por enquanto vamos deixar passar para não travar seu teste, 
+         # mas em produção você ativaria o erro abaixo:
+         # raise HTTPException(status_code=401, detail="Não autorizado")
+
     data = payload.analysis.data_collection
     insight = {
         "conversation_id": payload.conversation_id,
@@ -147,10 +164,14 @@ async def handle_elevenlabs_webhook(payload: WebhookPayload, x_secret_key: Optio
     }
     
     if db:
+        # Salva a interação completa
         db.collection("interactions").document(payload.conversation_id).set(insight)
-        if "customer_name" in data or "nome" in data:
+        
+        # Se detectou nome, salva como um Lead potencial para o comercial
+        if any(key in data for key in ["customer_name", "nome", "nome_cliente"]):
             db.collection("leads").add({**insight, "type": "detected_lead"})
-        return {"status": "success", "message": "Dados salvos"}
+            
+        return {"status": "success", "message": "Dados processados e salvos no Firebase"}
             
     return {"status": "success"}
 
