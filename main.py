@@ -170,6 +170,44 @@ async def mcp_handler(request: Request):
         ]
     }
 
+@app.get("/api/v1/stats")
+async def get_stats():
+    """
+    Calcula estatísticas básicas para o Dashboard.
+    """
+    if not db:
+        return {"total_conversations": 0, "total_leads": 0}
+    
+    # Simulação de contagem (para um SaaS real, você usaria contadores ou agregação)
+    interactions = db.collection("interactions").get()
+    leads = db.collection("leads").get()
+    
+    return {
+        "total_conversations": len(interactions),
+        "total_leads": len(leads),
+        "conversion_rate": f"{(len(leads)/len(interactions)*100):.1f}%" if len(interactions) > 0 else "0%"
+    }
+
+@app.get("/api/v1/interactions")
+async def get_interactions(limit: int = 10):
+    """
+    Lista as últimas interações salvas.
+    """
+    if not db:
+        return []
+    
+    docs = db.collection("interactions").order_by("timestamp", direction=firestore.Query.DESCENDING).limit(limit).get()
+    
+    results = []
+    for doc in docs:
+        d = doc.to_dict()
+        # Converte timestamp para string para o JSON
+        if "timestamp" in d and d["timestamp"]:
+            d["timestamp"] = d["timestamp"].isoformat()
+        results.append(d)
+        
+    return results
+
 if __name__ == "__main__":
     import uvicorn
     # Rodando na porta 8000 para o Localtunnel
