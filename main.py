@@ -16,7 +16,11 @@ app = FastAPI(title="ELEVEN CHAT - Revenue Intelligence AI Gateway")
 # Configuração de CORS para permitir que o Frontend (Next.js) acesse o Backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Em produção, coloque o seu domínio da Vercel
+    allow_origins=[
+        "*", 
+        "https://eleven-chat-saas.netlify.app",
+        "http://localhost:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
