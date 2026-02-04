@@ -81,6 +81,63 @@ async def root():
         "elevenlabs_configured": bool(ELEVENLABS_API_KEY)
     }
 
+@app.post("/api/v1/agent/create")
+async def create_agent(setup: AgentSetup, user_id: str = Header(None)):
+    """
+    Cria um novo robô do zero na ElevenLabs e retorna o Agent ID.
+    """
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User ID não informado")
+    if not ELEVENLABS_API_KEY:
+        raise HTTPException(status_code=500, detail="API Key não configurada")
+
+    # 1. Endpoint de criação da ElevenLabs
+    url = "https://api.elevenlabs.io/v1/convai/agents/create"
+    headers = {"xi-api-key": ELEVENLABS_API_KEY, "Content-Type": "application/json"}
+    
+    # Configuração inicial básica
+    payload = {
+        "name": setup.bot_name or "Novo Robô Eleven Chat",
+        "conversation_config": {
+            "agent": {
+                "prompt": {
+                    "prompt": f"Seu nome é {setup.bot_name}. Você atua na área de {setup.area}. {setup.prompt}"
+                },
+                "first_message": f"Olá! Eu sou {setup.bot_name}, como posso te ajudar hoje?",
+                "language": "pt"
+            },
+            "asr_config": {
+                "model": "scribe_v1",
+                "language": "pt"
+            }
+        }
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, json=payload, headers=headers)
+        if response.status_code != 200:
+            raise HTTPException(status_code=response.status_code, detail=f"Erro ao criar na Eleven: {response.text}")
+        
+        new_agent_data = response.json()
+        agent_id = new_agent_data.get("agent_id")
+
+    # 2. Configura a Extração de Dados (Entities) no robô recém-criado
+    if agent_id:
+        update_url = f"https://api.elevenlabs.io/v1/convai/agents/{agent_id}"
+        data_collection = {}
+        for entity in setup.entities:
+            data_collection[entity.name] = {"type": "string", "description": entity.description}
+        
+        update_payload = {"analysis_config": {"data_collection": data_collection}}
+        await client.patch(update_url, json=update_payload, headers=headers)
+
+        # 3. Salva o novo Agent ID no perfil do usuário no Firebase
+        if db:
+            user_ref = db.collection("users").document(user_id)
+            user_ref.collection("settings").document("current_agent").set({**setup.dict(), "agent_id": agent_id})
+
+    return {"status": "success", "agent_id": agent_id}
+
 @app.post("/api/v1/agent/setup")
 async def setup_agent(setup: AgentSetup, user_id: str = Header(None)):
     """

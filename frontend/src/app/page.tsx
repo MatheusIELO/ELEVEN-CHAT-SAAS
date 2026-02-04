@@ -80,6 +80,35 @@ export default function DashboardPage() {
     }
   }, [isLoggedIn, userId]);
 
+  const handleCreateAgent = async () => {
+    if (!botName || !area) return alert("Preencha o Nome do Bot e a Área para criar.");
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v1/agent/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'user-id': userId },
+        body: JSON.stringify({
+          agent_id: "", // Vazio pois vamos criar um novo
+          area,
+          bot_name: botName,
+          prompt,
+          entities: entities.map(({ name, description }) => ({ name, description }))
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAgentId(data.agent_id);
+        alert(`Robô criado com sucesso! ID: ${data.agent_id}`);
+      } else {
+        alert("Erro ao criar robô: " + (data.detail || "Consulte os logs"));
+      }
+    } catch (e) {
+      alert("Erro de conexão.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSaveAgent = async () => {
     if (!agentId) return alert("Insira o ID do Agente.");
     setLoading(true);
@@ -237,7 +266,7 @@ export default function DashboardPage() {
 
               <div className="space-y-2">
                 <label className="text-xs font-bold text-gray-500 uppercase">Como ele deve falar?</label>
-                <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4} className="w-full bg-black/50 border border-gray-800 rounded-xl p-4 outline-none" placeholder="Como o robô deve falar?" />
+                <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4} className="w-full bg-black/50 border border-gray-800 rounded-xl p-4 outline-none" placeholder="Ex: Seja cordial, não use gírias..." />
               </div>
 
               <div className="space-y-4 pt-4">
@@ -254,7 +283,7 @@ export default function DashboardPage() {
               </div>
 
               <button disabled={loading} onClick={handleSaveAgent} className="w-full bg-indigo-600 py-4 rounded-2xl font-black text-lg hover:bg-indigo-500 transition shadow-lg">
-                {loading ? "Processando..." : "Salvar & Sincronizar"}
+                {loading ? "Processando..." : "Sincronizar & Atualizar"}
               </button>
             </div>
           </div>
@@ -271,22 +300,35 @@ export default function DashboardPage() {
 
       {/* Modal de Teste */}
       {showTest && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-          <div className="bg-[#101014] border border-gray-800 w-full max-w-2xl rounded-3xl overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-[#15151a]">
-              <h3 className="font-bold">Testando Inteligência: {botName}</h3>
-              <button onClick={() => setShowTest(false)} className="text-gray-500 hover:text-white font-bold">FECHAR</button>
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-center p-6 sm:p-12">
+          <div className="bg-[#101014] border border-white/5 w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-8 border-b border-gray-900/50 flex justify-between items-center bg-white/[0.02]">
+              <div>
+                <h3 className="text-xl font-bold text-white">Laboratório de IA: {botName}</h3>
+                <p className="text-xs text-gray-500 mt-1">Sessão protegida por criptografia de ponta a ponta</p>
+              </div>
+              <button onClick={() => setShowTest(false)} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-red-500/20 hover:text-red-400 transition-all font-black">×</button>
             </div>
-            <div className="h-[500px] w-full bg-black flex flex-col items-center justify-center p-12 text-center">
+            <div className="min-h-[500px] w-full bg-black relative p-8">
               {agentId ? (
-                <>
-                  <p className="text-indigo-400 mb-4 animate-pulse uppercase text-xs font-bold">Conectando ao núcleo da ElevenLabs...</p>
-                  <elevenlabs-convai agent-id={agentId}></elevenlabs-convai>
+                <div className="flex flex-col items-center justify-center h-full space-y-8 py-10">
+                  <div className="relative">
+                    <div className="absolute -inset-4 bg-indigo-500/20 blur-2xl rounded-full animate-pulse"></div>
+                    <elevenlabs-convai agent-id={agentId} text-chat-enabled="true"></elevenlabs-convai>
+                    {/* O widget da ElevenLabs já possui modo de chat se configurado no portal.
+                          Caso queira um chat 100% texto via código, precisaríamos de uma rota de proxy de Stream. */}
+                  </div>
+                  <div className="text-center space-y-4 max-w-sm">
+                    <p className="text-indigo-400 text-xs font-black tracking-widest uppercase">Núcleo On-line</p>
+                    <p className="text-gray-400 text-sm leading-relaxed">Você pode falar por voz clicando no botão central ou utilizar o ícone de chat (se disponível no widget) para testes de texto.</p>
+                  </div>
                   <script src="https://elevenlabs.io/convai-widget/index.js" async type="text/javascript"></script>
-                  <p className="text-gray-500 text-xs mt-8">Clique no microfone para começar a falar com sua IA.</p>
-                </>
+                </div>
               ) : (
-                <p className="text-red-400">Configure um Agent ID primeiro para testar!</p>
+                <div className="flex flex-col items-center justify-center h-full py-20">
+                  <p className="text-red-400 font-bold mb-4">Agent ID não encontrado.</p>
+                  <p className="text-gray-600 text-sm">Crie ou insira um Agent ID no Setup para iniciar o teste.</p>
+                </div>
               )}
             </div>
           </div>
