@@ -82,27 +82,25 @@ async def root():
     }
 
 @app.post("/api/v1/agent/setup")
-async def setup_agent(setup: AgentSetup):
+async def setup_agent(setup: AgentSetup, user_id: str = Header(None)):
     """
     Recebe as configurações do Frontend e atualiza a ElevenLabs.
     """
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User ID não informado")
+        
     if not ELEVENLABS_API_KEY:
-        raise HTTPException(status_code=500, detail="ElevenLabs API Key não configurada no .env")
+        raise HTTPException(status_code=500, detail="ElevenLabs API Key não configurada")
 
-    # 1. Salva no Firebase para o Dashboard saber como o robô está configurado
+    # 1. Salva no Firebase segmentado por usuário
     if db:
-        db.collection("settings").document("current_agent").set(setup.dict())
+        user_ref = db.collection("users").document(user_id)
+        user_ref.collection("settings").document("current_agent").set(setup.dict())
 
-    # 2. Atualiza a ElevenLabs via API deles
-    # O objetivo aqui é atualizar o 'analysis_config' (data collection) e o 'system_prompt'
+    # 2. Atualiza a ElevenLabs
     url = f"https://api.elevenlabs.io/v1/convai/agents/{setup.agent_id}"
+    headers = {"xi-api-key": ELEVENLABS_API_KEY, "Content-Type": "application/json"}
     
-    headers = {
-        "xi-api-key": ELEVENLABS_API_KEY,
-        "Content-Type": "application/json"
-    }
-    
-    # Criamos o payload de atualização
     payload = {
         "conversation_config": {
             "agent": {
@@ -113,45 +111,40 @@ async def setup_agent(setup: AgentSetup):
         }
     }
     
-    # Adicionamos a extração de dados dinâmica (entities)
-    # Na ElevenLabs, isso fica em analysis_config.data_collection
     data_collection = {}
     for entity in setup.entities:
-        data_collection[entity.name] = {
-            "type": "string",
-            "description": entity.description
-        }
+        data_collection[entity.name] = {"type": "string", "description": entity.description}
     
-    payload["analysis_config"] = {
-        "data_collection": data_collection
-    }
+    payload["analysis_config"] = {"data_collection": data_collection}
 
     async with httpx.AsyncClient() as client:
         response = await client.patch(url, json=payload, headers=headers)
         if response.status_code != 200:
-            print(f"❌ Erro ElevenLabs: {response.text}")
-            raise HTTPException(status_code=response.status_code, detail="Erro ao atualizar ElevenLabs")
+            raise HTTPException(status_code=response.status_code, detail=f"Erro ElevenLabs: {response.text}")
             
-    return {"status": "success", "message": "Robô atualizado com as novas captações!"}
+    return {"status": "success", "message": "Robô atualizado e salvo na sua conta!"}
 
 @app.post("/api/v1/webhooks/elevenlabs")
 async def handle_elevenlabs_webhook(
     payload: WebhookPayload, 
     request: Request,
-    x_secret_key: Optional[str] = Header(None),
     elevenlabs_signature: Optional[str] = Header(None, alias="ElevenLabs-Signature")
 ):
     """
-    Recebe os dados da conversa da ElevenLabs e salva no Firebase.
+    IMPORTANTE: No Webhook, a ElevenLabs não envia o nosso UserID diretamente.
+    Precisamos descobrir de quem é esse agent_id.
     """
-    # Validação Básica de Segurança
-    # Se você configurou como HMAC na ElevenLabs, ela envia a assinatura.
-    # Se não, podemos usar o segredo simples que passamos no setup.
-    if x_secret_key != WEBHOOK_SECRET and not elevenlabs_signature:
-         print(f"⚠️ Tentativa de acesso não autorizado ao webhook!")
-         # Por enquanto vamos deixar passar para não travar seu teste, 
-         # mas em produção você ativaria o erro abaixo:
-         # raise HTTPException(status_code=401, detail="Não autorizado")
+    agent_id = payload.agent_id
+    
+    # Busca qual usuário é dono deste agent_id no Firestore
+    user_owner = None
+    if db:
+        # Busca em todos os usuários quem tem este agent_id configurado
+        # Em larga escala, o ideal seria ter uma tabela de indexação AgentID -> UserID
+        users = db.collection_group("settings").where("agent_id", "==", agent_id).limit(1).get()
+        if users:
+            # Pega o ID do documento pai (o usuário)
+            user_owner = users[0].reference.parent.parent.id
 
     data = payload.analysis.data_collection
     insight = {
@@ -163,45 +156,25 @@ async def handle_elevenlabs_webhook(
         "timestamp": firestore.SERVER_TIMESTAMP if db else None
     }
     
-    if db:
-        # Salva a interação completa
-        db.collection("interactions").document(payload.conversation_id).set(insight)
+    if db and user_owner:
+        user_ref = db.collection("users").document(user_owner)
+        user_ref.collection("interactions").document(payload.conversation_id).set(insight)
         
-        # Se detectou nome, salva como um Lead potencial para o comercial
         if any(key in data for key in ["customer_name", "nome", "nome_cliente"]):
-            db.collection("leads").add({**insight, "type": "detected_lead"})
+            user_ref.collection("leads").add({**insight, "type": "detected_lead"})
             
-        return {"status": "success", "message": "Dados processados e salvos no Firebase"}
+        return {"status": "success", "message": f"Dados salvos para o usuário {user_owner}"}
             
     return {"status": "success"}
 
-@app.post("/api/v1/mcp")
-async def mcp_handler(request: Request):
-    return {
-        "tools": [
-            {
-                "name": "verificar_estoque",
-                "description": "Consulta o estoque e preços reais.",
-                "parameters": {
-                    "type": "object",
-                    "properties": { "produto": {"type": "string"} },
-                    "required": ["produto"]
-                }
-            }
-        ]
-    }
-
 @app.get("/api/v1/stats")
-async def get_stats():
-    """
-    Calcula estatísticas básicas para o Dashboard.
-    """
-    if not db:
+async def get_stats(user_id: str = Header(None)):
+    if not user_id or not db:
         return {"total_conversations": 0, "total_leads": 0}
     
-    # Simulação de contagem (para um SaaS real, você usaria contadores ou agregação)
-    interactions = db.collection("interactions").get()
-    leads = db.collection("leads").get()
+    user_ref = db.collection("users").document(user_id)
+    interactions = user_ref.collection("interactions").get()
+    leads = user_ref.collection("leads").get()
     
     return {
         "total_conversations": len(interactions),
@@ -210,26 +183,21 @@ async def get_stats():
     }
 
 @app.get("/api/v1/interactions")
-async def get_interactions(limit: int = 10):
-    """
-    Lista as últimas interações salvas.
-    """
-    if not db:
+async def get_interactions(user_id: str = Header(None), limit: int = 10):
+    if not user_id or not db:
         return []
     
-    docs = db.collection("interactions").order_by("timestamp", direction=firestore.Query.DESCENDING).limit(limit).get()
+    user_ref = db.collection("users").document(user_id)
+    docs = user_ref.collection("interactions").order_by("timestamp", direction=firestore.Query.DESCENDING).limit(limit).get()
     
     results = []
     for doc in docs:
         d = doc.to_dict()
-        # Converte timestamp para string para o JSON
         if "timestamp" in d and d["timestamp"]:
             d["timestamp"] = d["timestamp"].isoformat()
         results.append(d)
-        
     return results
 
 if __name__ == "__main__":
     import uvicorn
-    # Rodando na porta 8000 para o Localtunnel
     uvicorn.run(app, host="0.0.0.0", port=8000)
