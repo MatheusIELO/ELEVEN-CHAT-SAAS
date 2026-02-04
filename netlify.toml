@@ -1,7 +1,4 @@
 [build]
   base = "frontend"
-  command = "npm install && npx next build"
+  command = "chmod +x node_modules/.bin/next && npm run build"
   publish = ".next"
-
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
