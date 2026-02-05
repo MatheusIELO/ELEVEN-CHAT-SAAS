@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase-admin';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
     try {
         const payload = await req.json();
@@ -32,8 +34,8 @@ export async function POST(req: Request) {
             timestamp: new Date()
         };
 
-        const userRef = db.collection('users').document(userOwnerId);
-        await userRef.collection('interactions').document(payload.conversation_id).set(insight);
+        const userRef = db.collection('users').doc(userOwnerId);
+        await userRef.collection('interactions').doc(payload.conversation_id).set(insight);
 
         // Lógica de Leads
         const leadKeys = ["customer_name", "nome", "nome_cliente", "email", "telefone"];

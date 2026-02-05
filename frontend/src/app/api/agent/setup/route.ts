@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase-admin';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
     try {
         const userId = req.headers.get('user-id');
@@ -63,8 +65,8 @@ export async function POST(req: Request) {
         });
 
         // 3. Salvar no Firestore
-        const userRef = db.collection('users').document(userId);
-        await userRef.collection('settings').document('current_agent').set({
+        const userRef = db.collection('users').doc(userId);
+        await userRef.collection('settings').doc('current_agent').set({
             ...setup,
             updatedAt: new Date().toISOString()
         });

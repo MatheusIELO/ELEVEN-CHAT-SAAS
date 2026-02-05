@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase-admin';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: Request) {
     try {
         const userId = req.headers.get('user-id');
         if (!userId) return NextResponse.json([]);
 
-        const userRef = db.collection('users').document(userId);
+        const userRef = db.collection('users').doc(userId);
         const snap = await userRef.collection('interactions')
             .orderBy('timestamp', 'desc')
             .limit(10)
