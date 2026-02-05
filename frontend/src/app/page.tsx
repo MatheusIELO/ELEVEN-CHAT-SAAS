@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 
-const API_BASE_URL = "https://eleven-chat-saas-production.up.railway.app";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://eleven-chat-saas-production.up.railway.app";
 
 export default function DashboardPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
