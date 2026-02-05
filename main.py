@@ -17,7 +17,6 @@ app = FastAPI(title="ELEVEN CHAT - Revenue Intelligence AI Gateway")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "*", 
         "https://eleven-chat-saas.netlify.app",
         "http://localhost:3000"
     ],
@@ -60,10 +59,16 @@ class EntityConfig(BaseModel):
     description: str
 
 class AgentSetup(BaseModel):
-    agent_id: str
+    agent_id: Optional[str] = ""
     area: str
     bot_name: str
     prompt: str
+    first_message: Optional[str] = ""
+    language: Optional[str] = "pt"
+    voice_id: Optional[str] = "21m00Tcm4TlvDq8ikWAM" # Rachel default
+    model_id: Optional[str] = "eleven_turbo_v2_5"
+    stability: Optional[float] = 0.5
+    similarity_boost: Optional[float] = 0.75
     entities: List[EntityConfig]
 
 class ElevenLabsAnalysis(BaseModel):
@@ -107,12 +112,16 @@ async def create_agent(setup: AgentSetup, user_id: str = Header(None)):
                 "prompt": {
                     "prompt": f"Seu nome é {setup.bot_name}. Você atua na área de {setup.area}. {setup.prompt}"
                 },
-                "first_message": f"Olá! Eu sou {setup.bot_name}, como posso te ajudar hoje?",
-                "language": "pt"
+                "first_message": setup.first_message or f"Olá! Eu sou {setup.bot_name}, como posso te ajudar hoje?",
+                "language": setup.language or "pt"
             },
             "asr_config": {
                 "model": "scribe_v1",
-                "language": "pt"
+                "language": setup.language or "pt"
+            },
+            "tts_config": {
+                "model_id": setup.model_id or "eleven_turbo_v2_5",
+                "voice_id": setup.voice_id or "21m00Tcm4TlvDq8ikWAM"
             }
         }
     }
@@ -163,11 +172,18 @@ async def setup_agent(setup: AgentSetup, user_id: str = Header(None)):
     headers = {"xi-api-key": ELEVENLABS_API_KEY, "Content-Type": "application/json"}
     
     payload = {
+        "name": setup.bot_name,
         "conversation_config": {
             "agent": {
                 "prompt": {
                     "prompt": f"Seu nome é {setup.bot_name}. Você atua na área de {setup.area}. {setup.prompt}"
-                }
+                },
+                "first_message": setup.first_message,
+                "language": setup.language
+            },
+            "tts_config": {
+                "model_id": setup.model_id,
+                "voice_id": setup.voice_id
             }
         }
     }

@@ -20,6 +20,10 @@ export default function DashboardPage() {
   const [area, setArea] = useState('');
   const [botName, setBotName] = useState('');
   const [prompt, setPrompt] = useState('');
+  const [firstMessage, setFirstMessage] = useState('');
+  const [language, setLanguage] = useState('pt');
+  const [voiceId, setVoiceId] = useState('21m00Tcm4TlvDq8ikWAM'); // Rachel
+  const [modelId, setModelId] = useState('eleven_turbo_v2_5');
   const [entities, setEntities] = useState([{ id: 1, name: 'customer_name', description: 'Nome do cliente' }]);
 
   // Test State
@@ -88,10 +92,14 @@ export default function DashboardPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'user-id': userId },
         body: JSON.stringify({
-          agent_id: "", // Vazio pois vamos criar um novo
+          agent_id: "",
           area,
           bot_name: botName,
           prompt,
+          first_message: firstMessage,
+          language,
+          voice_id: voiceId,
+          model_id: modelId,
           entities: entities.map(({ name, description }) => ({ name, description }))
         })
       });
@@ -124,6 +132,10 @@ export default function DashboardPage() {
           area,
           bot_name: botName,
           prompt,
+          first_message: firstMessage,
+          language,
+          voice_id: voiceId,
+          model_id: modelId,
           entities: entities.map(({ name, description }) => ({ name, description }))
         })
       });
@@ -269,7 +281,37 @@ export default function DashboardPage() {
                 <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4} className="w-full bg-black/50 border border-gray-800 rounded-xl p-4 outline-none" placeholder="Ex: Seja cordial, não use gírias..." />
               </div>
 
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-500 uppercase">Primeira Mensagem (Saudação)</label>
+                <input value={firstMessage} onChange={(e) => setFirstMessage(e.target.value)} type="text" className="w-full bg-black/50 border border-gray-800 rounded-xl p-4 outline-none" placeholder="Ex: Olá! Como posso ajudar?" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase">Idioma</label>
+                  <select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full bg-black/50 border border-gray-800 rounded-xl p-4 outline-none">
+                    <option value="pt">Português (BR)</option>
+                    <option value="en">English (US)</option>
+                    <option value="es">Español</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase">Voice ID (Rachel default)</label>
+                  <input value={voiceId} onChange={(e) => setVoiceId(e.target.value)} type="text" className="w-full bg-black/50 border border-gray-800 rounded-xl p-4 outline-none" placeholder="ID da Voz na ElevenLabs" />
+                </div>
+              </div>
+
               <div className="space-y-4 pt-4">
+                <div className="flex justify-between items-center bg-indigo-500/5 p-4 rounded-xl border border-indigo-500/10 mb-4">
+                  <div>
+                    <p className="text-xs font-black uppercase text-indigo-400">Automatização ElevenLabs</p>
+                    <p className="text-[10px] text-gray-500">Crie um novo agente do zero se não tiver um ID ainda.</p>
+                  </div>
+                  <button onClick={handleCreateAgent} disabled={loading} className="bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 border border-indigo-500/30 px-4 py-2 rounded-lg text-xs font-black transition">
+                    CRIAR NOVO AGENTE ↗
+                  </button>
+                </div>
+
                 <div className="flex justify-between">
                   <label className="text-xs font-bold text-gray-500 uppercase">Campos para Extrair (Nome, Email, etc.)</label>
                   <button onClick={addEntity} className="text-xs text-indigo-400 underline font-bold">+ Adicionar</button>
