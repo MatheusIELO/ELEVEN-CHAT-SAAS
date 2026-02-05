@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://eleven-chat-saas-production.up.railway.app";
+// Agora usamos caminhos relativos pois o backend está no mesmo projeto (Next.js API Routes)
+const API_PREFIX = "/api";
 
 export default function DashboardPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -15,27 +16,17 @@ export default function DashboardPage() {
   const [stats, setStats] = useState({ total_conversations: 0, total_leads: 0, conversion_rate: '0%' });
   const [interactions, setInteractions] = useState<any[]>([]);
 
-  // Setup State
+  // Setup State (Simplificado para o Cliente)
   const [agentId, setAgentId] = useState('');
-  const [area, setArea] = useState('');
   const [botName, setBotName] = useState('');
+  const [area, setArea] = useState('');
   const [prompt, setPrompt] = useState('');
   const [firstMessage, setFirstMessage] = useState('');
   const [language, setLanguage] = useState('pt');
-  const [voiceId, setVoiceId] = useState('21m00Tcm4TlvDq8ikWAM'); // Rachel
-  const [modelId, setModelId] = useState('eleven_turbo_v2_5');
-  const [entities, setEntities] = useState([{ id: 1, name: 'customer_name', description: 'Nome do cliente' }]);
+  const [voiceId, setVoiceId] = useState('21m00Tcm4TlvDq8ikWAM'); // Rachel default
+  const [entities, setEntities] = useState([{ id: 1, name: 'nome_cliente', description: 'Nome do cliente' }]);
 
-  // Test State
   const [showTest, setShowTest] = useState(false);
-
-  const addEntity = () => {
-    setEntities([...entities, { id: Date.now(), name: '', description: '' }]);
-  };
-
-  const updateEntity = (id: number, field: 'name' | 'description', value: string) => {
-    setEntities(entities.map(e => e.id === id ? { ...e, [field]: value } : e));
-  };
 
   useEffect(() => {
     const savedUser = localStorage.getItem('eleven_user');
@@ -64,14 +55,13 @@ export default function DashboardPage() {
     if (!userId) return;
     try {
       const headers = { 'user-id': userId };
-      const statsRes = await fetch(`${API_BASE_URL}/api/v1/stats`, { headers });
-      const statsData = await statsRes.json();
-      setStats(statsData);
-
-      const interRes = await fetch(`${API_BASE_URL}/api/v1/interactions`, { headers });
-      const interData = await interRes.json();
-      setInteractions(interData);
-    } catch (error: any) {
+      const [statsRes, interRes] = await Promise.all([
+        fetch(`${API_PREFIX}/stats`, { headers }),
+        fetch(`${API_PREFIX}/interactions`, { headers })
+      ]);
+      setStats(await statsRes.json());
+      setInteractions(await interRes.json());
+    } catch (error) {
       console.error("Erro ao carregar dados:", error);
     }
   };
@@ -85,69 +75,32 @@ export default function DashboardPage() {
   }, [isLoggedIn, userId]);
 
   const handleCreateAgent = async () => {
-    if (!botName || !area) return alert("Preencha o Nome do Bot e a Área para criar.");
+    if (!botName || !area) return alert("Por favor, dê um nome ao seu assistente.");
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/agent/create`, {
+      const res = await fetch(`${API_PREFIX}/agent/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'user-id': userId },
         body: JSON.stringify({
-          agent_id: "",
-          area,
           bot_name: botName,
+          area,
           prompt,
           first_message: firstMessage,
           language,
           voice_id: voiceId,
-          model_id: modelId,
-          entities: entities.map(({ name, description }) => ({ name, description }))
+          entities: entities.filter(e => e.name && e.description)
         })
       });
       const data = await res.json();
       if (res.ok) {
         setAgentId(data.agent_id);
-        alert(`Robô criado com sucesso! ID: ${data.agent_id}`);
-      } else {
-        alert("Erro ao criar robô: " + (data.detail || "Consulte os logs"));
-      }
-    } catch (e) {
-      alert("Erro de conexão.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSaveAgent = async () => {
-    if (!agentId) return alert("Insira o ID do Agente.");
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/agent/setup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'user-id': userId
-        },
-        body: JSON.stringify({
-          agent_id: agentId,
-          area,
-          bot_name: botName,
-          prompt,
-          first_message: firstMessage,
-          language,
-          voice_id: voiceId,
-          model_id: modelId,
-          entities: entities.map(({ name, description }) => ({ name, description }))
-        })
-      });
-      if (res.ok) {
-        alert("Robô configurado na sua conta!");
+        alert("🎉 Assistente criado com sucesso!");
         setActiveTab('dash');
       } else {
-        const err = await res.json();
-        alert(`Erro: ${err.detail || "Erro ao salvar"}`);
+        alert("Erro: " + data.detail);
       }
     } catch (e) {
-      alert("Erro ao salvar.");
+      alert("Erro ao conectar com o servidor.");
     } finally {
       setLoading(false);
     }
@@ -155,223 +108,186 @@ export default function DashboardPage() {
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center p-6">
-        <div className="max-w-md w-full glass-card p-10 animate-in fade-in zoom-in duration-500">
-          <h1 className="text-4xl font-bold gradient-text mb-2 text-center">Eleven Chat</h1>
-          <p className="text-gray-400 text-center mb-8">O cérebro de vendas do seu WhatsApp</p>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans">
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-10 border border-slate-100">
+          <div className="flex justify-center mb-6">
+            <div className="w-12 h-12 bg-green-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-lg shadow-green-200">11</div>
+          </div>
+          <h1 className="text-3xl font-extrabold text-slate-900 mb-2 text-center tracking-tight">Eleven Chat</h1>
+          <p className="text-slate-500 text-center mb-8 font-medium">Sua IA de Atendimento Inteligente</p>
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-500 uppercase">Seu E-mail</label>
-              <input value={email} onChange={e => setEmail(e.target.value)} type="email" required className="w-full bg-black/50 border border-gray-800 rounded-xl p-4 outline-none focus:border-indigo-500 transition" placeholder="nome@empresa.com" />
+              <label className="text-sm font-semibold text-slate-700">E-mail de acesso</label>
+              <input value={email} onChange={e => setEmail(e.target.value)} type="email" required className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-slate-800 placeholder:text-slate-400" placeholder="exemplo@suaempresa.com" />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-500 uppercase">Senha</label>
-              <input value={password} onChange={e => setPassword(e.target.value)} type="password" required className="w-full bg-black/50 border border-gray-800 rounded-xl p-4 outline-none focus:border-indigo-500 transition" placeholder="••••••••" />
+              <label className="text-sm font-semibold text-slate-700">Senha</label>
+              <input value={password} onChange={e => setPassword(e.target.value)} type="password" required className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-slate-800" placeholder="••••••••" />
             </div>
-            <button type="submit" className="w-full bg-indigo-600 py-4 rounded-xl font-bold hover:bg-indigo-500 transition shadow-[0_0_20px_rgba(99,102,241,0.3)]">
-              Entrar na Plataforma
+            <button type="submit" className="w-full bg-green-600 text-white py-4 rounded-2xl font-bold hover:bg-green-700 transition-all shadow-lg shadow-green-200 transform active:scale-[0.98]">
+              Entrar no Painel
             </button>
           </form>
-          <p className="text-center text-xs text-gray-600 mt-6 italic">Acesso exclusivo para parceiros autorizados.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white p-8">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-12">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center font-bold text-xl shadow-[0_0_15px_rgba(99,102,241,0.5)]">11</div>
-          <div>
-            <h1 className="text-2xl font-bold gradient-text">Eleven Chat</h1>
-            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">UID: {userId}</p>
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-20">
+      {/* Top Navbar */}
+      <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200 px-8 py-4 mb-8">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-green-500 rounded-xl flex items-center justify-center text-white font-black shadow-md shadow-green-100">11</div>
+            <h1 className="text-xl font-extrabold tracking-tight text-slate-900">Eleven Chat</h1>
+          </div>
+
+          <div className="flex items-center gap-8">
+            <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl border border-slate-200">
+              <button onClick={() => setActiveTab('dash')} className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'dash' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Dashboard</button>
+              <button onClick={() => setActiveTab('setup')} className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'setup' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Assistente</button>
+            </div>
+            <button onClick={handleLogout} className="text-slate-400 hover:text-red-500 text-sm font-semibold transition-colors">Sair</button>
           </div>
         </div>
+      </nav>
 
-        <div className="flex items-center gap-6">
-          <div className="flex gap-2 bg-[#101014] p-1 rounded-xl border border-gray-800">
-            <button onClick={() => setActiveTab('dash')} className={`px-6 py-2 rounded-lg transition ${activeTab === 'dash' ? 'bg-[#1e1e24] text-white' : 'text-gray-500 hover:text-white'}`}>Dashboard</button>
-            <button onClick={() => setActiveTab('setup')} className={`px-6 py-2 rounded-lg transition ${activeTab === 'setup' ? 'bg-[#1e1e24] text-white' : 'text-gray-500 hover:text-white'}`}>Setup</button>
-          </div>
-          <button onClick={handleLogout} className="text-gray-500 hover:text-red-400 text-sm font-bold transition">Sair</button>
-        </div>
-      </div>
+      <main className="max-w-7xl mx-auto px-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+        {activeTab === 'dash' ? (
+          <div className="space-y-8">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                { label: 'Conversas', val: stats.total_conversations, color: 'text-green-600', bg: 'bg-green-50' },
+                { label: 'Leads Capturados', val: stats.total_leads, color: 'text-blue-600', bg: 'bg-blue-50' },
+                { label: 'Taxa de Conversão', val: stats.conversion_rate, color: 'text-purple-600', bg: 'bg-purple-50' }
+              ].map((card, i) => (
+                <div key={i} className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col items-center">
+                  <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">{card.label}</p>
+                  <p className={`text-5xl font-black ${card.color}`}>{card.val}</p>
+                </div>
+              ))}
+            </div>
 
-      {activeTab === 'dash' ? (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 animate-in slide-in-from-bottom-4 duration-500">
-            <div className="glass-card p-6 border-l-4 border-indigo-500">
-              <h3 className="text-gray-400 text-xs uppercase font-bold mb-1">Conversas</h3>
-              <p className="text-4xl font-black">{stats.total_conversations}</p>
-            </div>
-            <div className="glass-card p-6 border-l-4 border-green-500">
-              <h3 className="text-gray-400 text-xs uppercase font-bold mb-1">Leads Detectados</h3>
-              <p className="text-4xl font-black">{stats.total_leads}</p>
-            </div>
-            <div className="glass-card p-6 border-l-4 border-purple-500">
-              <h3 className="text-gray-400 text-xs uppercase font-bold mb-1">Taxa de Captura</h3>
-              <p className="text-4xl font-black">{stats.conversion_rate}</p>
-            </div>
-          </div>
+            {/* Interactions Log */}
+            <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 p-10">
+              <div className="flex justify-between items-center mb-10">
+                <h2 className="text-2xl font-extrabold tracking-tight">Últimas Interações</h2>
+                <div className="text-xs font-bold text-slate-400 bg-slate-50 px-4 py-2 rounded-full uppercase tracking-widest">Tempo Real</div>
+              </div>
 
-          <div className="glass-card p-8 animate-in fade-in duration-700">
-            <h2 className="text-xl font-bold mb-8">Log de Inteligência</h2>
-            <div className="space-y-4">
-              {interactions.map((i: any) => (
-                <div key={i.conversation_id} className="bg-[#101014] border border-gray-900 rounded-2xl p-6 hover:border-gray-700 transition group">
-                  <div className="flex justify-between items-start mb-4">
-                    <p className="text-sm font-medium text-gray-200 line-clamp-2 leading-relaxed flex-1 pr-8">{i.summary}</p>
-                    <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${i.sentiment === 'positive' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
-                      }`}>
-                      {i.sentiment || 'Neutro'}
-                    </span>
+              <div className="grid gap-4">
+                {interactions.map((i: any) => (
+                  <div key={i.conversation_id} className="group bg-slate-50 border border-slate-100 rounded-[1.5rem] p-6 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 hover:border-white transition-all duration-300">
+                    <div className="flex justify-between items-start mb-4">
+                      <p className="text-slate-700 font-medium leading-relaxed pr-6 line-clamp-2">{i.summary}</p>
+                      <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm ${i.sentiment === 'positive' ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'}`}>
+                        {i.sentiment || 'Neutro'}
+                      </span>
+                    </div>
+                    {i.extracted_data && Object.keys(i.extracted_data).length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-slate-200/50 group-hover:border-slate-100 transition-colors">
+                        {Object.entries(i.extracted_data).map(([key, val]: [string, any]) => (
+                          <div key={key} className="bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-sm">
+                            <span className="text-[10px] text-slate-400 font-bold uppercase mr-2">{key.replace('_', ' ')}:</span>
+                            <span className="text-[11px] text-slate-800 font-extrabold">{val}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-900">
-                    {Object.entries(i.extracted_data || {}).map(([key, val]: [string, any]) => (
-                      <div key={key} className="bg-indigo-500/5 border border-indigo-500/10 px-3 py-1.5 rounded-lg">
-                        <span className="text-[10px] text-gray-500 font-bold uppercase mr-2">{key}:</span>
-                        <span className="text-[10px] text-indigo-400 font-bold">{val}</span>
+                ))}
+                {interactions.length === 0 && (
+                  <div className="text-center py-24 text-slate-300 italic font-medium">Nenhuma conversa registrada ainda.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="max-w-3xl mx-auto animate-in slide-in-from-bottom-8 duration-500">
+            <div className="bg-white rounded-[3rem] shadow-xl shadow-slate-200/50 border border-white p-12">
+              <div className="flex justify-between items-end mb-12">
+                <div>
+                  <h2 className="text-3xl font-black text-slate-900 mb-2">Configure sua IA</h2>
+                  <p className="text-slate-500 text-sm font-medium">Preencha o perfil para dar vida ao seu assistente.</p>
+                </div>
+                <button
+                  onClick={() => setShowTest(true)}
+                  disabled={!agentId}
+                  className={`px-8 py-3 rounded-2xl font-bold text-xs shadow-lg transition-all transform active:scale-95 ${agentId ? 'bg-green-500 text-white shadow-green-200 hover:bg-green-600' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
+                >
+                  ⚡ Testar Agora
+                </button>
+              </div>
+
+              <div className="space-y-8">
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Nome do Assistente</label>
+                    <input value={botName} onChange={(e) => setBotName(e.target.value)} type="text" className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 outline-none focus:ring-2 focus:ring-green-500/10 focus:border-green-500 transition-all font-medium" placeholder="Ex: Maria" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Segmento / Área</label>
+                    <input value={area} onChange={(e) => setArea(e.target.value)} type="text" className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 outline-none focus:ring-2 focus:ring-green-500/10 focus:border-green-500 transition-all font-medium" placeholder="Ex: Imobiliária" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest">O que ele deve saber?</label>
+                  <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4} className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 outline-none focus:ring-2 focus:ring-green-500/10 focus:border-green-500 transition-all font-medium" placeholder="Descreva o treinamento da IA aqui..." />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Primeira Saudação</label>
+                  <input value={firstMessage} onChange={(e) => setFirstMessage(e.target.value)} type="text" className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 outline-none focus:ring-2 focus:ring-green-500/10 focus:border-green-500 transition-all font-medium" placeholder="Olá! Sou a Maria, como posso ajudar?" />
+                </div>
+
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Dados para Coletar</label>
+                    <button className="text-[10px] font-black uppercase text-green-600 hover:text-green-700">+ Adicionar</button>
+                  </div>
+                  <div className="grid gap-3">
+                    {entities.map((e: any) => (
+                      <div key={e.id} className="flex gap-2">
+                        <div className="bg-green-50 border border-green-100 px-4 py-2 rounded-xl text-[11px] font-bold text-green-700">{e.name}</div>
+                        <div className="flex-1 bg-slate-50 border border-slate-100 px-4 py-2 rounded-xl text-[11px] font-medium text-slate-500">{e.description}</div>
                       </div>
                     ))}
                   </div>
                 </div>
-              ))}
-              {interactions.length === 0 && <div className="text-center py-20 text-gray-600 font-medium italic">Aguardando as primeiras interações do seu robô...</div>}
+
+                <button disabled={loading} onClick={handleCreateAgent} className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-lg hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 transform active:scale-[0.99] flex items-center justify-center gap-3">
+                  {loading ? (
+                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                  ) : (
+                    "🚀 Ativar Inteligência"
+                  )}
+                </button>
+              </div>
             </div>
           </div>
-        </>
-      ) : (
-        <div className="max-w-4xl mx-auto space-y-8 animate-in slide-in-from-bottom-8 duration-500">
-          <div className="glass-card p-10">
-            <div className="flex justify-between items-center mb-10">
-              <div>
-                <h2 className="text-2xl font-bold">Configuração do Robô</h2>
-                <p className="text-gray-400 text-sm mt-1">Personalize o comportamento e a inteligência da IA.</p>
-              </div>
-              <button
-                onClick={() => setShowTest(true)}
-                className="bg-green-600 hover:bg-green-500 px-6 py-3 rounded-xl font-bold text-sm shadow-[0_0_15px_rgba(34,197,94,0.3)] transition"
-              >
-                ⚡ Testar Robô Agora
-              </button>
-            </div>
+        )}
+      </main>
 
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 uppercase">Agent ID (ElevenLabs)</label>
-                <input value={agentId} onChange={(e) => setAgentId(e.target.value)} type="text" className="w-full bg-black/50 border border-gray-800 rounded-xl p-4 outline-none focus:border-indigo-500" placeholder="Cole o ID do seu agente TwelveLabs" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase">Área (ex: Imobiliária)</label>
-                  <input value={area} onChange={(e) => setArea(e.target.value)} type="text" className="w-full bg-black/50 border border-gray-800 rounded-xl p-4 outline-none" placeholder="Ex: Venda de Imóveis" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase">Nome do Bot</label>
-                  <input value={botName} onChange={(e) => setBotName(e.target.value)} type="text" className="w-full bg-black/50 border border-gray-800 rounded-xl p-4 outline-none" placeholder="Ex: Assistente Bruma" />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 uppercase">Como ele deve falar?</label>
-                <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4} className="w-full bg-black/50 border border-gray-800 rounded-xl p-4 outline-none" placeholder="Ex: Seja cordial, não use gírias..." />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 uppercase">Primeira Mensagem (Saudação)</label>
-                <input value={firstMessage} onChange={(e) => setFirstMessage(e.target.value)} type="text" className="w-full bg-black/50 border border-gray-800 rounded-xl p-4 outline-none" placeholder="Ex: Olá! Como posso ajudar?" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase">Idioma</label>
-                  <select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full bg-black/50 border border-gray-800 rounded-xl p-4 outline-none">
-                    <option value="pt">Português (BR)</option>
-                    <option value="en">English (US)</option>
-                    <option value="es">Español</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase">Voice ID (Rachel default)</label>
-                  <input value={voiceId} onChange={(e) => setVoiceId(e.target.value)} type="text" className="w-full bg-black/50 border border-gray-800 rounded-xl p-4 outline-none" placeholder="ID da Voz na ElevenLabs" />
-                </div>
-              </div>
-
-              <div className="space-y-4 pt-4">
-                <div className="flex justify-between items-center bg-indigo-500/5 p-4 rounded-xl border border-indigo-500/10 mb-4">
-                  <div>
-                    <p className="text-xs font-black uppercase text-indigo-400">Automatização ElevenLabs</p>
-                    <p className="text-[10px] text-gray-500">Crie um novo agente do zero se não tiver um ID ainda.</p>
-                  </div>
-                  <button onClick={handleCreateAgent} disabled={loading} className="bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 border border-indigo-500/30 px-4 py-2 rounded-lg text-xs font-black transition">
-                    CRIAR NOVO AGENTE ↗
-                  </button>
-                </div>
-
-                <div className="flex justify-between">
-                  <label className="text-xs font-bold text-gray-500 uppercase">Campos para Extrair (Nome, Email, etc.)</label>
-                  <button onClick={addEntity} className="text-xs text-indigo-400 underline font-bold">+ Adicionar</button>
-                </div>
-                {entities.map((e: any) => (
-                  <div key={e.id} className="flex gap-2">
-                    <input value={e.name} onChange={(ev: any) => updateEntity(e.id, 'name', ev.target.value)} type="text" className="flex-1 bg-black/50 border border-gray-800 rounded-lg p-3 text-sm outline-none" placeholder="Nome do campo" />
-                    <input value={e.description} onChange={(ev: any) => updateEntity(e.id, 'description', ev.target.value)} type="text" className="flex-[2] bg-black/50 border border-gray-800 rounded-lg p-3 text-sm outline-none" placeholder="O que capturar?" />
-                  </div>
-                ))}
-              </div>
-
-              <button disabled={loading} onClick={handleSaveAgent} className="w-full bg-indigo-600 py-4 rounded-2xl font-black text-lg hover:bg-indigo-500 transition shadow-lg">
-                {loading ? "Processando..." : "Sincronizar & Atualizar"}
-              </button>
-            </div>
-          </div>
-
-          <div className="glass-card p-10 border-dashed border-gray-800 opacity-60">
-            <h2 className="text-xl font-bold mb-2">Conectar ao WhatsApp</h2>
-            <p className="text-gray-400 text-sm mb-6">Integre este robô diretamente ao seu número oficial via API Meta.</p>
-            <button className="bg-gray-800 py-3 px-8 rounded-xl font-bold text-gray-400 cursor-not-allowed">
-              Em breve: Meta Embedded Signup
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de Teste */}
+      {/* Test Modal (ElevenLabs Convai) */}
       {showTest && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-center p-6 sm:p-12">
-          <div className="bg-[#101014] border border-white/5 w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="p-8 border-b border-gray-900/50 flex justify-between items-center bg-white/[0.02]">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl z-50 flex items-center justify-center p-6 sm:p-12 animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-500">
+            <div className="p-8 border-b border-slate-100 flex justify-between items-center">
               <div>
-                <h3 className="text-xl font-bold text-white">Laboratório de IA: {botName}</h3>
-                <p className="text-xs text-gray-500 mt-1">Sessão protegida por criptografia de ponta a ponta</p>
+                <h3 className="text-xl font-bold text-slate-900">Teste sua Assistente: {botName}</h3>
+                <p className="text-xs text-slate-400 font-medium">Fale com ela para validar as respostas.</p>
               </div>
-              <button onClick={() => setShowTest(false)} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-red-500/20 hover:text-red-400 transition-all font-black">×</button>
+              <button onClick={() => setShowTest(false)} className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all font-black">×</button>
             </div>
-            <div className="min-h-[500px] w-full bg-black relative p-8">
-              {agentId ? (
-                <div className="flex flex-col items-center justify-center h-full space-y-8 py-10">
-                  <div className="relative">
-                    <div className="absolute -inset-4 bg-indigo-500/20 blur-2xl rounded-full animate-pulse"></div>
-                    <elevenlabs-convai agent-id={agentId} text-chat-enabled="true"></elevenlabs-convai>
-                    {/* O widget da ElevenLabs já possui modo de chat se configurado no portal.
-                          Caso queira um chat 100% texto via código, precisaríamos de uma rota de proxy de Stream. */}
-                  </div>
-                  <div className="text-center space-y-4 max-w-sm">
-                    <p className="text-indigo-400 text-xs font-black tracking-widest uppercase">Núcleo On-line</p>
-                    <p className="text-gray-400 text-sm leading-relaxed">Você pode falar por voz clicando no botão central ou utilizar o ícone de chat (se disponível no widget) para testes de texto.</p>
-                  </div>
-                  <script src="https://elevenlabs.io/convai-widget/index.js" async type="text/javascript"></script>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full py-20">
-                  <p className="text-red-400 font-bold mb-4">Agent ID não encontrado.</p>
-                  <p className="text-gray-600 text-sm">Crie ou insira um Agent ID no Setup para iniciar o teste.</p>
-                </div>
-              )}
+            <div className="min-h-[450px] w-full bg-slate-50 relative flex items-center justify-center">
+              <div className="scale-110">
+                <elevenlabs-convai agent-id={agentId}></elevenlabs-convai>
+                <script src="https://elevenlabs.io/convai-widget/index.js" async type="text/javascript"></script>
+              </div>
             </div>
           </div>
         </div>
