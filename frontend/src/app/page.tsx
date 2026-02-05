@@ -10,7 +10,7 @@ export default function DashboardPage() {
   const [password, setPassword] = useState('');
   const [userId, setUserId] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'dash' | 'agents'>('dash');
+  const [activeTab, setActiveTab] = useState<'dash' | 'agents' | 'logs'>('dash');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -128,7 +128,6 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        alert(editingAgentId ? "✅ Agente atualizado!" : "🎉 Novo agente criado!");
         setIsDrawerOpen(false);
         fetchData();
       } else {
@@ -143,25 +142,25 @@ export default function DashboardPage() {
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6 font-sans">
-        <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] p-12 border border-slate-100">
+      <div className="min-h-screen bg-[#0F1115] flex items-center justify-center p-6 font-sans antialiased text-white">
+        <div className="max-w-md w-full bg-[#181A20] rounded-2xl shadow-2xl p-10 border border-[#2A2E37]">
           <div className="flex justify-center mb-8">
-            <div className="w-14 h-14 bg-green-500 rounded-3xl flex items-center justify-center text-white font-bold text-2xl shadow-xl shadow-green-200 ring-8 ring-green-50">11</div>
+            <div className="w-12 h-12 bg-[#3BC671] rounded-xl flex items-center justify-center text-black font-bold text-xl shadow-lg shadow-green-500/20">11</div>
           </div>
-          <h1 className="text-4xl font-black text-slate-900 mb-2 text-center tracking-tight">Eleven Chat</h1>
-          <p className="text-slate-400 text-center mb-10 font-bold uppercase text-[10px] tracking-[0.2em]">Revenue Intelligence Platform</p>
+          <h1 className="text-2xl font-bold mb-1 text-center tracking-tight">Welcome to Eleven Chat</h1>
+          <p className="text-slate-500 text-center mb-10 text-sm font-medium">Professional Conversational Intelligence</p>
 
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
-              <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">E-mail</label>
-              <input value={email} onChange={e => setEmail(e.target.value)} type="email" required className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 outline-none focus:ring-4 focus:ring-green-500/5 focus:border-green-500 transition-all text-slate-800 placeholder:text-slate-300 font-medium" placeholder="nome@agencia.com" />
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Work Email</label>
+              <input value={email} onChange={e => setEmail(e.target.value)} type="email" required className="w-full bg-[#23262F] border border-[#2A2E37] rounded-xl p-4 outline-none focus:border-[#3BC671] transition-all text-sm placeholder:text-slate-600" placeholder="jane@company.com" />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Senha</label>
-              <input value={password} onChange={e => setPassword(e.target.value)} type="password" required className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 outline-none focus:ring-4 focus:ring-green-500/5 focus:border-green-500 transition-all text-slate-800 font-medium" placeholder="••••••••" />
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Password</label>
+              <input value={password} onChange={e => setPassword(e.target.value)} type="password" required className="w-full bg-[#23262F] border border-[#2A2E37] rounded-xl p-4 outline-none focus:border-[#3BC671] transition-all text-sm placeholder:text-slate-600" placeholder="••••••••" />
             </div>
-            <button type="submit" className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-lg hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 transform active:scale-[0.98] mt-4">
-              Acessar Ecossistema
+            <button type="submit" className="w-full bg-[#3BC671] text-black py-4 rounded-xl font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-[#3BC671]/10 mt-4 active:scale-[0.99]">
+              Sign In
             </button>
           </form>
         </div>
@@ -170,264 +169,267 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F0F4F8] text-slate-900 font-sans flex flex-col pt-0 lg:pt-0">
-      {/* Top Navbar */}
-      <nav className="sticky top-0 z-40 bg-white/70 backdrop-blur-xl border-b border-white/50 px-8 py-5">
-        <div className="max-w-[1600px] mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-green-600 rounded-2xl flex items-center justify-center text-white font-black shadow-lg shadow-green-200">11</div>
-            <div>
-              <h1 className="text-xl font-black tracking-tight text-slate-900 leading-none">Eleven Chat</h1>
-              <span className="text-[10px] font-black uppercase tracking-widest text-green-600/60">Professional</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-10">
-            <div className="hidden md:flex gap-2 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/50">
-              <button onClick={() => setActiveTab('dash')} className={`px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'dash' ? 'bg-white text-green-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Dashboard</button>
-              <button onClick={() => setActiveTab('agents')} className={`px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'agents' ? 'bg-white text-green-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Meus Agentes</button>
-            </div>
-            <button onClick={handleLogout} className="bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-100 w-10 h-10 flex items-center justify-center rounded-xl transition-all shadow-sm">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-            </button>
-          </div>
+    <div className="min-h-screen bg-[#F8F9FB] text-[#0F1115] font-sans antialiased flex flex-col lg:flex-row">
+      {/* Sidebar Navigation */}
+      <aside className="w-full lg:w-64 bg-[#0F1115] text-white flex flex-col shrink-0 border-r border-slate-800">
+        <div className="p-6 flex items-center gap-3 border-b border-slate-800/50 mb-4">
+          <div className="w-8 h-8 bg-[#3BC671] rounded-lg flex items-center justify-center text-black font-black text-sm">11</div>
+          <span className="font-bold tracking-tight text-lg">Eleven Chat</span>
         </div>
-      </nav>
 
-      <main className="flex-1 max-w-[1600px] mx-auto w-full px-8 py-10">
-        {activeTab === 'dash' ? (
-          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* Stats Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-              <div>
-                <h2 className="text-4xl font-black text-slate-900 tracking-tight">Visão Geral</h2>
-                <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">Performance em Tempo Real</p>
-              </div>
-              <div className="flex bg-white px-6 py-3 rounded-2xl border border-slate-200/50 shadow-sm gap-4 items-center">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Sincronizado com ElevenLabs</span>
-              </div>
+        <nav className="flex-1 px-4 space-y-1">
+          {[
+            { id: 'dash', label: 'Dashboard', icon: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z' },
+            { id: 'agents', label: 'Conversational Agents', icon: 'M12 2a10 10 0 0 1 10 10c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2z' },
+            { id: 'logs', label: 'Interaction Logs', icon: 'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z' },
+          ].map(item => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id as any)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-colors ${activeTab === item.id ? 'bg-[#3BC671]/10 text-[#3BC671]' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+            >
+              <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={item.icon} /></svg>
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="p-4 border-t border-slate-800/50">
+          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold text-slate-400 hover:text-red-400 hover:bg-red-400/5 transition-colors">
+            <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            Sign Out
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto">
+        <header className="h-16 flex items-center justify-between px-8 bg-white border-b border-slate-200 sticky top-0 z-10">
+          <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest">
+            {activeTab === 'dash' ? 'Overview' : activeTab === 'agents' ? 'Conversational AI' : 'Insights'}
+          </h2>
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:flex items-center gap-2 text-[11px] font-bold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
+              <div className="w-1.5 h-1.5 bg-[#3BC671] rounded-full"></div>
+              Live Engine
             </div>
+          </div>
+        </header>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {[
-                { label: 'Conversas Ativas', val: stats.total_conversations, color: 'text-slate-900', bg: 'bg-white', icon: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z' },
-                { label: 'Leads Qualificados', val: stats.total_leads, color: 'text-green-600', bg: 'bg-white', icon: 'M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2' },
-                { label: 'Conversão Comercial', val: stats.conversion_rate, color: 'text-green-600', bg: 'bg-green-600 text-white', icon: 'M23 6l-9.5 9.5-5-5L1 18' }
-              ].map((card, i) => (
-                <div key={i} className={`${card.bg} p-10 rounded-[3rem] shadow-[0_20px_40px_rgba(0,0,0,0.03)] border ${i === 2 ? 'border-green-600' : 'border-white'} group hover:transform hover:translate-y-[-5px] transition-all duration-500 cursor-default overflow-hidden relative`}>
-                  <div className="relative z-10">
-                    <div className={`mb-6 p-3 rounded-2xl w-fit ${i === 2 ? 'bg-white/20' : 'bg-slate-50 group-hover:bg-green-50'}`}>
-                      <svg className={i === 2 ? 'text-white' : 'text-slate-400 group-hover:text-green-500'} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d={card.icon} /></svg>
-                    </div>
-                    <p className={i === 2 ? 'text-green-100 text-xs font-black uppercase tracking-widest mb-1' : 'text-slate-400 text-xs font-black uppercase tracking-widest mb-1'}>{card.label}</p>
-                    <p className={`text-6xl font-black ${card.color}`}>{card.val}</p>
+        <div className="p-8 max-w-6xl mx-auto">
+          {activeTab === 'dash' && (
+            <div className="space-y-8 animate-in fade-in duration-500">
+              {/* Compact Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[
+                  { label: 'Conversations', val: stats.total_conversations, sub: 'Total processed interactions' },
+                  { label: 'Leads Detected', val: stats.total_leads, sub: 'Qualified prospects captured' },
+                  { label: 'Conversion Rate', val: stats.conversion_rate, sub: 'Performance benchmark' }
+                ].map((s, i) => (
+                  <div key={i} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">{s.label}</p>
+                    <p className="text-3xl font-bold text-slate-900 mb-2">{s.val}</p>
+                    <p className="text-[11px] text-slate-500 font-medium">{s.sub}</p>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
 
-            {/* Interactions Log */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-              <div className="lg:col-span-2 bg-white rounded-[3.5rem] shadow-[0_30px_60px_rgba(0,0,0,0.02)] border border-white p-12">
-                <div className="flex justify-between items-center mb-12">
-                  <h2 className="text-2xl font-black tracking-tight">Histórico de Fluxo</h2>
-                  <button onClick={fetchData} className="p-3 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-all">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={loading ? 'animate-spin' : ''}><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+              {/* Interaction Breakdown */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden text-sm">
+                <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/30">
+                  <h3 className="font-bold text-slate-900">Recent Stream</h3>
+                  <button onClick={fetchData} className="text-slate-400 hover:text-slate-600">
+                    <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M4 4v5h.582M20 20v-5h-.581M18.46 6.54A9 9 0 0 1 20 12h-2M5.54 18.46A9 9 0 0 1 4 12h2" /></svg>
                   </button>
                 </div>
-
-                <div className="space-y-6">
-                  {interactions.map((i: any) => (
-                    <div key={i.conversation_id} className="group bg-slate-50/50 border border-slate-100 rounded-[2.5rem] p-8 hover:bg-white hover:shadow-[0_25px_50px_rgba(0,0,0,0.06)] hover:border-transparent transition-all duration-500">
-                      <div className="flex justify-between items-start mb-6">
-                        <p className="text-slate-700 font-bold text-lg leading-snug line-clamp-2 max-w-[80%]">{i.summary}</p>
-                        <span className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm ${i.sentiment === 'positive' ? 'bg-green-100 text-green-700' : 'bg-slate-200/50 text-slate-500'}`}>
-                          {i.sentiment || 'Neutro'}
-                        </span>
+                <div className="divide-y divide-slate-100">
+                  {interactions.map(i => (
+                    <div key={i.conversation_id} className="p-6 hover:bg-slate-50 transition-colors">
+                      <div className="flex justify-between gap-4 mb-3">
+                        <div className="bg-slate-900 text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded leading-none flex items-center h-fit">ID: {i.conversation_id.slice(-6)}</div>
+                        <span className={`text-[10px] font-bold uppercase tracking-wider ${i.sentiment === 'positive' ? 'text-[#3BC671]' : 'text-slate-400'}`}>{i.sentiment || 'Neutral'}</span>
                       </div>
-                      <div className="flex flex-wrap gap-3">
-                        {i.extracted_data && Object.entries(i.extracted_data).map(([key, val]: [string, any]) => (
-                          <div key={key} className="bg-white border border-slate-200/60 px-4 py-2 rounded-2xl shadow-sm group-hover:border-green-100">
-                            <span className="text-[10px] text-slate-400 font-black uppercase mr-3">{key.replace('_', ' ')}</span>
-                            <span className="text-[11px] text-slate-800 font-black">{val}</span>
+                      <p className="text-slate-600 font-medium leading-relaxed mb-4">{i.summary}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {i.extracted_data && Object.entries(i.extracted_data).map(([k, v]: [string, any]) => (
+                          <div key={k} className="bg-slate-100 border border-slate-200 rounded-lg px-3 py-1.5 flex items-center gap-3">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase">{k.replace('_', ' ')}</span>
+                            <span className="text-[11px] font-bold text-slate-700">{v}</span>
                           </div>
                         ))}
                       </div>
                     </div>
                   ))}
                   {interactions.length === 0 && (
-                    <div className="text-center py-32 bg-slate-50/50 rounded-[3rem] border border-dashed border-slate-200">
-                      <div className="text-slate-300 font-black text-sm uppercase tracking-widest italic">Nenhum fluxo capturado</div>
-                    </div>
+                    <div className="p-12 text-center text-slate-400 font-semibold italic">No data detected for this user.</div>
                   )}
                 </div>
               </div>
+            </div>
+          )}
 
-              <div className="space-y-10">
-                <div className="bg-green-600 rounded-[3rem] p-10 text-white shadow-2xl shadow-green-200 overflow-hidden relative">
-                  <svg className="absolute top-[-20px] right-[-20px] text-white/10 w-40 h-40" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-                  <h3 className="text-2xl font-black mb-4 relative z-10 leading-tight">Vantagem ElevenLabs AI</h3>
-                  <p className="text-green-100 text-sm font-bold leading-relaxed relative z-10 mb-8">Todos os seus agentes usam o motor de voz mais avançado do mundo por padrão.</p>
-                  <button onClick={openNewAgentDrawer} className="bg-white text-green-700 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-green-800/20">Novo Assistente</button>
+          {activeTab === 'agents' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+              <div className="flex justify-between items-end">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900 mb-1">My Agents</h3>
+                  <p className="text-sm text-slate-500 font-medium">Manage and deploy your conversational units</p>
                 </div>
+                <button
+                  onClick={openNewAgentDrawer}
+                  className="bg-[#3BC671] text-black px-6 py-2.5 rounded-xl font-bold text-sm shadow-xl shadow-green-500/10 hover:shadow-green-500/20 active:scale-95 transition-all text-sm flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14" /></svg>
+                  Create Agent
+                </button>
+              </div>
 
-                <div className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100">
-                  <h3 className="text-lg font-black mb-6 flex items-center gap-3">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    Log de Acessos
-                  </h3>
-                  <div className="space-y-4">
-                    {[1, 2, 3].map(id => (
-                      <div key={id} className="flex items-center gap-4 py-3 border-b border-slate-50 last:border-0">
-                        <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-[10px] font-black text-slate-400">#0{id}</div>
-                        <div className="flex-1">
-                          <div className="text-[11px] font-black text-slate-900">Login Efetuado</div>
-                          <div className="text-[10px] font-bold text-slate-400 uppercase">14:02 · Brasil</div>
-                        </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {agents.map(agent => (
+                  <div key={agent.id} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:border-slate-300 transition-all flex flex-col group">
+                    <div className="flex justify-between items-start mb-6">
+                      <div className="w-12 h-12 bg-slate-900 text-white rounded-xl flex items-center justify-center font-bold relative">
+                        {agent.bot_name?.[0]?.toUpperCase() || 'A'}
+                        {agent.agent_id && <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#3BC671] rounded-full border-2 border-white ring-2 ring-[#3BC671]/20"></div>}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="animate-in fade-in slide-in-from-right-8 duration-700">
-            <div className="flex justify-between items-center mb-12">
-              <div>
-                <h2 className="text-4xl font-black text-slate-900 tracking-tight">Meus Agentes</h2>
-                <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">Biblioteca de Atendimento</p>
-              </div>
-              <button
-                onClick={openNewAgentDrawer}
-                className="bg-green-600 text-white px-10 py-5 rounded-[2rem] font-black text-sm uppercase tracking-[0.1em] hover:bg-green-700 transition-all shadow-2xl shadow-green-200 transform active:scale-95 flex items-center gap-4"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                Contratar Novo Agente
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-              {agents.map((agent: any) => (
-                <div key={agent.id} className="bg-white rounded-[3.5rem] p-10 shadow-[0_20px_40px_rgba(0,0,0,0.02)] border border-white hover:border-green-100 hover:shadow-[0_40px_80px_rgba(0,0,0,0.06)] transition-all duration-500 group relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-full translate-x-16 translate-y-[-16px] group-hover:bg-green-50 transition-colors"></div>
-                  <div className="relative z-10 flex flex-col h-full">
-                    <div className="flex justify-between items-start mb-10">
-                      <div className="w-16 h-16 bg-slate-50 flex items-center justify-center rounded-3xl text-3xl shadow-sm border border-slate-100 group-hover:scale-110 transition-all">🤖</div>
-                      <div className="text-right">
-                        <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest ${agent.agent_id ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}>
-                          {agent.agent_id ? "Ativo" : "Pendente"}
-                        </span>
+                      <div className="flex gap-2">
+                        <button onClick={() => openEditDrawer(agent)} className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all">
+                          <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                        </button>
+                        <button onClick={() => { setAgentId(agent.agent_id); setBotName(agent.bot_name); setShowTest(true); }} className="p-2 text-slate-400 hover:text-[#3BC671] hover:bg-green-50 rounded-lg transition-all">
+                          <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                        </button>
                       </div>
                     </div>
-                    <h3 className="text-2xl font-black text-slate-900 mb-2 truncate">{agent.bot_name || "Agente sem nome"}</h3>
-                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-6">{agent.area || "Sem setor definido"}</p>
-
-                    <div className="mt-auto flex gap-3 pt-6 border-t border-slate-50">
-                      <button onClick={() => openEditDrawer(agent)} className="flex-1 bg-slate-100 text-slate-600 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all">Configurar</button>
-                      <button onClick={() => { setAgentId(agent.agent_id); setShowTest(true); }} className="w-14 h-11 bg-green-50 text-green-600 flex items-center justify-center rounded-2xl hover:bg-green-600 hover:text-white transition-all">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {agents.length === 0 && (
-                <div className="col-span-full py-32 text-center bg-white rounded-[3.5rem] border-4 border-dashed border-slate-100">
-                  <p className="text-slate-300 font-black text-sm uppercase tracking-widest italic mb-6">Sua agência de IA está vazia</p>
-                  <button onClick={openNewAgentDrawer} className="text-green-600 font-black text-xs uppercase tracking-widest bg-green-50 px-8 py-3 rounded-xl hover:bg-green-100 transition-all">+ Criar Primeiro</button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* RIGHT DRAWER / SIDEBAR FOR AGENT CREATION */}
-      <div className={`fixed inset-0 z-50 transition-all duration-500 ease-in-out ${isDrawerOpen ? 'visible' : 'invisible'}`}>
-        <div className={`absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-500 ${isDrawerOpen ? 'opacity-100' : 'opacity-0'}`} onClick={() => setIsDrawerOpen(false)} />
-        <div className={`absolute top-0 right-0 h-full w-full max-w-xl bg-white shadow-[-30px_0_60px_rgba(0,0,0,0.1)] transition-transform duration-500 ease-out p-12 overflow-y-auto ${isDrawerOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-          <div className="flex justify-between items-start mb-12">
-            <div>
-              <h2 className="text-3xl font-black text-slate-900 tracking-tight">{editingAgentId ? "Ajustar Agente" : "Contratar Agente"}</h2>
-              <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">{editingAgentId ? "Atualizando inteligência" : "Defina as habilidades da sua IA"}</p>
-            </div>
-            <button onClick={() => setIsDrawerOpen(false)} className="bg-slate-50 text-slate-300 hover:text-red-500 w-12 h-12 flex items-center justify-center rounded-2xl transition-all">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-          </div>
-
-          <div className="space-y-10">
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Codinome Digital</label>
-                <input value={botName} onChange={(e) => setBotName(e.target.value)} type="text" className="w-full bg-slate-50 border border-slate-200 rounded-[1.25rem] p-5 outline-none focus:ring-4 focus:ring-green-500/5 focus:border-green-500 transition-all font-bold text-slate-800 placeholder:text-slate-300 shadow-sm" placeholder="Ex: Maria" />
-              </div>
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Especialidade</label>
-                <input value={area} onChange={(e) => setArea(e.target.value)} type="text" className="w-full bg-slate-50 border border-slate-200 rounded-[1.25rem] p-5 outline-none focus:ring-4 focus:ring-green-500/5 focus:border-green-500 transition-all font-bold text-slate-800 placeholder:text-slate-300 shadow-sm" placeholder="Ex: Vendas" />
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Diretrizes de Personalidade</label>
-              <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={5} className="w-full bg-slate-50 border border-slate-200 rounded-[1.5rem] p-6 outline-none focus:ring-4 focus:ring-green-500/5 focus:border-green-500 transition-all font-bold text-slate-700 placeholder:text-slate-300 leading-relaxed shadow-sm" placeholder="Como o assistente deve se comportar?" />
-            </div>
-
-            <div className="space-y-3">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Saudação Inicial</label>
-              <input value={firstMessage} onChange={(e) => setFirstMessage(e.target.value)} type="text" className="w-full bg-slate-50 border border-slate-200 rounded-[1.25rem] p-5 outline-none focus:ring-4 focus:ring-green-500/5 focus:border-green-500 transition-all font-bold text-slate-800 shadow-sm" placeholder="Ex: Olá! Como posso ajudar?" />
-            </div>
-
-            <div className="space-y-4 pt-6 border-t border-slate-100">
-              <div className="flex justify-between items-center mb-4">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Protocolos de Extração</label>
-                <button className="text-[9px] font-black uppercase text-green-600 bg-green-50 px-4 py-2 rounded-xl">+ Adicionar Campo</button>
-              </div>
-              <div className="grid gap-4">
-                {entities.map((e: any) => (
-                  <div key={e.id} className="flex gap-4 p-5 bg-slate-100/50 rounded-2xl border border-slate-200/50 group hover:border-green-200 transition-all">
-                    <div className="w-10 h-10 bg-white shadow-sm flex items-center justify-center rounded-xl text-[10px] font-black text-green-600">ID</div>
-                    <div className="flex-1 space-y-1">
-                      <div className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{e.name}</div>
-                      <div className="text-[11px] font-bold text-slate-400 truncate">{e.description}</div>
+                    <h4 className="font-bold text-slate-900 text-lg mb-1">{agent.bot_name}</h4>
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-4 border-b border-slate-100 pb-4">{agent.area}</p>
+                    <div className="h-20 overflow-hidden relative">
+                      <p className="text-xs text-slate-500 font-medium leading-relaxed italic line-clamp-3">"{agent.prompt}"</p>
+                      <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-white to-transparent"></div>
                     </div>
                   </div>
                 ))}
+                {agents.length === 0 && (
+                  <div className="col-span-full py-20 bg-slate-100/50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 group">
+                    <p className="font-bold text-sm tracking-tight mb-4">No active conversational units found</p>
+                    <button onClick={openNewAgentDrawer} className="text-[#3BC671] font-bold text-xs uppercase tracking-widest border border-[#3BC671]/30 px-6 py-2 rounded-lg hover:bg-white transition-all">Deploy first agent</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'logs' && (
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="px-6 py-4 font-bold text-slate-400 uppercase text-[10px] tracking-widest">Transaction ID</th>
+                    <th className="px-6 py-4 font-bold text-slate-400 uppercase text-[10px] tracking-widest">Sentiment</th>
+                    <th className="px-6 py-4 font-bold text-slate-400 uppercase text-[10px] tracking-widest">Summary Preview</th>
+                    <th className="px-6 py-4 font-bold text-slate-400 uppercase text-[10px] tracking-widest text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {interactions.map(i => (
+                    <tr key={i.conversation_id} className="hover:bg-slate-50 cursor-pointer transition-colors group">
+                      <td className="px-6 py-4 font-mono text-[11px] text-slate-500">#{i.conversation_id.slice(-8)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${i.sentiment === 'positive' ? 'bg-[#3BC671]/10 text-[#3BC671]' : 'bg-slate-100 text-slate-400'}`}>{i.sentiment || 'N/A'}</span>
+                      </td>
+                      <td className="px-6 py-4 text-slate-600 font-medium truncate max-w-[300px]">{i.summary}</td>
+                      <td className="px-6 py-4 text-right">
+                        <button className="p-1 px-3 bg-slate-100 text-slate-900 rounded-lg text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-all">DETAIL</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Drawer - Ultra Sleek */}
+      {isDrawerOpen && (
+        <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] animate-in fade-in transition-all" onClick={() => setIsDrawerOpen(false)} />
+          <div className="relative w-full max-w-lg bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right-8 duration-500">
+            <header className="px-8 py-6 border-b border-slate-100 flex items-center justify-between shrink-0">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">{editingAgentId ? 'Agent Settings' : 'New Agent Deployment'}</h2>
+                <p className="text-xs text-slate-500 font-medium">{editingAgentId ? 'Configuring active model instance' : 'Initializing new conversational unit'}</p>
+              </div>
+              <button onClick={() => setIsDrawerOpen(false)} className="p-2 text-slate-300 hover:text-slate-900 transition-colors">
+                <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </header>
+
+            <div className="flex-1 overflow-y-auto p-8 space-y-8">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Asset Name</label>
+                  <input value={botName} onChange={(e) => setBotName(e.target.value)} type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 outline-none focus:border-[#3BC671] transition-all font-semibold text-sm placeholder:text-slate-300" placeholder="e.g. Maria AI" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Business Domain</label>
+                  <input value={area} onChange={(e) => setArea(e.target.value)} type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 outline-none focus:border-[#3BC671] transition-all font-semibold text-sm placeholder:text-slate-300" placeholder="e.g. Sales" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Core Personality & Knowledge Base</label>
+                <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={5} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 outline-none focus:border-[#3BC671] transition-all font-medium text-sm text-slate-700 leading-relaxed resize-none" placeholder="Instruction set for behavioral model..." />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">First Interaction Payload</label>
+                <input value={firstMessage} onChange={(e) => setFirstMessage(e.target.value)} type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 outline-none focus:border-[#3BC671] transition-all font-semibold text-sm" placeholder="Trigger message..." />
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex justify-between items-center bg-slate-900 p-4 rounded-xl">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Data Extraction Protocols</span>
+                  <button className="text-[10px] font-bold text-black bg-[#3BC671] px-3 py-1 rounded-lg">LIVE</button>
+                </div>
+                <div className="space-y-2">
+                  {entities.map(e => (
+                    <div key={e.id} className="bg-white border border-slate-200 p-4 rounded-xl flex items-center gap-4 group">
+                      <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-[10px] font-bold text-slate-400 group-hover:text-[#3BC671] transition-colors uppercase">{e.name.slice(0, 2)}</div>
+                      <div>
+                        <p className="text-[11px] font-bold text-slate-900 leading-none mb-1">{e.name}</p>
+                        <p className="text-[10px] text-slate-400 font-medium">{e.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
-            <button disabled={loading} onClick={handleSaveAgent} className="w-full bg-green-600 text-white py-6 rounded-[2rem] font-black text-lg hover:bg-green-700 transition-all shadow-[0_20px_40px_rgba(22,163,74,0.2)] transform active:scale-[0.98] flex items-center justify-center gap-4 mt-12">
-              {loading ? (
-                <span className="w-6 h-6 border-4 border-white/20 border-t-white rounded-full animate-spin"></span>
-              ) : (
-                <>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                  {editingAgentId ? "Salvar Alterações" : "Ativar Assistente"}
-                </>
-              )}
-            </button>
+            <footer className="p-8 border-t border-slate-100 bg-slate-50/50">
+              <button disabled={loading} onClick={handleSaveAgent} className="w-full bg-slate-900 text-white p-4 rounded-xl font-bold text-sm hover:bg-slate-800 transition-all flex items-center justify-center gap-3 active:scale-[0.98]">
+                {loading ? <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> : (editingAgentId ? 'Update instance' : 'Initialize deployment')}
+              </button>
+            </footer>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Test Modal (ElevenLabs Convai) */}
+      {/* Test Modal */}
       {showTest && (
-        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[60] flex items-center justify-center p-6 animate-in fade-in duration-300" onClick={() => setShowTest(false)}>
-          <div className="bg-white w-full max-w-2xl rounded-[4rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-500" onClick={e => e.stopPropagation()}>
-            <div className="p-12 border-b border-slate-50 flex justify-between items-center bg-[#F8FAFC]">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center p-6" onClick={() => setShowTest(false)}>
+          <div className="bg-[#181A20] w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden border border-[#2A2E37]" onClick={e => e.stopPropagation()}>
+            <div className="p-8 flex justify-between items-center border-b border-[#2A2E37]">
               <div>
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Sala de Testes: {botName}</h3>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">Ambiente Seguro ElevenLabs</p>
+                <h3 className="text-lg font-bold text-white tracking-tight">Test Sandbox: {botName}</h3>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Real-time inference window</p>
               </div>
-              <button onClick={() => setShowTest(false)} className="w-14 h-14 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-red-500 hover:border-red-100 transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              <button onClick={() => setShowTest(false)} className="w-10 h-10 rounded-xl bg-[#23262F] border border-[#2A2E37] flex items-center justify-center text-slate-400 hover:text-white transition-all">
+                <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <div className="min-h-[500px] w-full bg-white relative flex items-center justify-center p-10">
-              <div className="scale-125">
+            <div className="h-[450px] w-full bg-[#0F1115] relative flex items-center justify-center">
+              <div className="scale-110">
                 {agentId && <elevenlabs-convai agent-id={agentId}></elevenlabs-convai>}
                 <script src="https://elevenlabs.io/convai-widget/index.js" async type="text/javascript"></script>
               </div>
