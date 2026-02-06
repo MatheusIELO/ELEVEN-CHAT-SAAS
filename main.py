@@ -70,6 +70,7 @@ class AgentSetup(BaseModel):
     stability: Optional[float] = 0.5
     similarity_boost: Optional[float] = 0.75
     entities: List[EntityConfig]
+    knowledge_base: Optional[List[str]] = []
 
 class ElevenLabsAnalysis(BaseModel):
     data_collection: Dict[str, Any]
@@ -113,7 +114,8 @@ async def create_agent(setup: AgentSetup, user_id: str = Header(None)):
                     "prompt": f"Seu nome é {setup.bot_name}. Você atua na área de {setup.area}. {setup.prompt}"
                 },
                 "first_message": setup.first_message or f"Olá! Eu sou {setup.bot_name}, como posso te ajudar hoje?",
-                "language": setup.language or "pt"
+                "language": setup.language or "pt",
+                "knowledge_base": setup.knowledge_base or []
             },
             "asr_config": {
                 "model": "scribe_v1",
@@ -147,7 +149,7 @@ async def create_agent(setup: AgentSetup, user_id: str = Header(None)):
         # 3. Salva o novo Agent ID no perfil do usuário no Firebase
         if db:
             user_ref = db.collection("users").document(user_id)
-            user_ref.collection("settings").document("current_agent").set({**setup.dict(), "agent_id": agent_id})
+            user_ref.collection("agents").document(agent_id).set({**setup.dict(), "agent_id": agent_id})
 
     return {"status": "success", "agent_id": agent_id}
 
@@ -165,7 +167,7 @@ async def setup_agent(setup: AgentSetup, user_id: str = Header(None)):
     # 1. Salva no Firebase segmentado por usuário
     if db:
         user_ref = db.collection("users").document(user_id)
-        user_ref.collection("settings").document("current_agent").set(setup.dict())
+        user_ref.collection("agents").document(setup.agent_id).set(setup.dict())
 
     # 2. Atualiza a ElevenLabs
     url = f"https://api.elevenlabs.io/v1/convai/agents/{setup.agent_id}"
@@ -179,7 +181,8 @@ async def setup_agent(setup: AgentSetup, user_id: str = Header(None)):
                     "prompt": f"Seu nome é {setup.bot_name}. Você atua na área de {setup.area}. {setup.prompt}"
                 },
                 "first_message": setup.first_message,
-                "language": setup.language
+                "language": setup.language,
+                "knowledge_base": setup.knowledge_base or []
             },
             "tts_config": {
                 "model_id": setup.model_id,
@@ -243,6 +246,40 @@ async def handle_elevenlabs_webhook(
         return {"status": "success", "message": f"Dados salvos para o usuário {user_owner}"}
             
     return {"status": "success"}
+    
+@app.post("/api/v1/knowledge/upload")
+async def upload_knowledge_document(
+    request: Request,
+    user_id: str = Header(None)
+):
+    """
+    Faz o upload de um documento para a ElevenLabs e retorna o ID do documento.
+    """
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User ID não informado")
+    if not ELEVENLABS_API_KEY:
+        raise HTTPException(status_code=500, detail="API Key não configurada")
+
+    form = await request.form()
+    file = form.get("file")
+    name = form.get("name", "Documento")
+
+    if not file:
+        raise HTTPException(status_code=400, detail="Arquivo não enviado")
+
+    url = "https://api.elevenlabs.io/v1/convai/knowledge-base"
+    headers = {"xi-api-key": ELEVENLABS_API_KEY}
+    
+    # Prepara o arquivo para o httpx
+    files = {"file": (file.filename, await file.read(), file.content_type)}
+    data = {"name": name}
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, data=data, files=files, headers=headers)
+        if response.status_code != 200:
+            raise HTTPException(status_code=response.status_code, detail=f"Erro no upload ElevenLabs: {response.text}")
+        
+    return response.json()
 
 @app.get("/api/v1/stats")
 async def get_stats(user_id: str = Header(None)):
@@ -272,6 +309,31 @@ async def get_interactions(user_id: str = Header(None), limit: int = 10):
         d = doc.to_dict()
         if "timestamp" in d and d["timestamp"]:
             d["timestamp"] = d["timestamp"].isoformat()
+        results.append(d)
+    return results
+
+@app.get("/api/v1/agents")
+async def get_all_agents(user_id: str = Header(None)):
+    if not user_id or not db:
+        return []
+    
+    user_ref = db.collection("users").document(user_id)
+    # Tenta buscar na nova coleção de agentes
+    docs = user_ref.collection("agents").get()
+    
+    # Se não houver nada, tenta buscar no local antigo (current_agent) para migração
+    if not docs:
+        legacy = user_ref.collection("settings").document("current_agent").get()
+        if legacy.exists:
+            data = legacy.to_dict()
+            data["id"] = data.get("agent_id") or "legacy"
+            return [data]
+        return []
+        
+    results = []
+    for doc in docs:
+        d = doc.to_dict()
+        d["id"] = doc.id
         results.append(d)
     return results
 

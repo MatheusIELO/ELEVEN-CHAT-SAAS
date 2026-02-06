@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 
-const API_PREFIX = "/api";
+const API_PREFIX = "/api/v1";
 
 export default function DashboardPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -27,7 +27,13 @@ export default function DashboardPage() {
   const [firstMessage, setFirstMessage] = useState('');
   const [language, setLanguage] = useState('pt');
   const [voiceId, setVoiceId] = useState('21m00Tcm4TlvDq8ikWAM');
-  const [entities, setEntities] = useState([{ id: 1, name: 'nome_cliente', description: 'Nome do cliente' }]);
+  const [entities, setEntities] = useState([
+    { id: 1, name: 'customer_name', description: 'Nome completo do cliente' },
+    { id: 2, name: 'customer_email', description: 'E-mail de contato' },
+    { id: 3, name: 'customer_phone', description: 'Telefone ou WhatsApp' }
+  ]);
+  const [knowledgeDocuments, setKnowledgeDocuments] = useState<any[]>([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
 
   const [showTest, setShowTest] = useState(false);
 
@@ -87,7 +93,12 @@ export default function DashboardPage() {
     setPrompt('');
     setFirstMessage('');
     setLanguage('pt');
-    setEntities([{ id: 1, name: 'nome_cliente', description: 'Nome do cliente' }]);
+    setEntities([
+      { id: 1, name: 'customer_name', description: 'Nome completo do cliente' },
+      { id: 2, name: 'customer_email', description: 'E-mail de contato' },
+      { id: 3, name: 'customer_phone', description: 'Telefone ou WhatsApp' }
+    ]);
+    setKnowledgeDocuments([]);
   };
 
   const openNewAgentDrawer = () => {
@@ -103,7 +114,12 @@ export default function DashboardPage() {
     setPrompt(agent.prompt || '');
     setFirstMessage(agent.first_message || '');
     setLanguage(agent.language || 'pt');
-    setEntities(agent.entities || [{ id: 1, name: 'nome_cliente', description: 'Nome do cliente' }]);
+    setEntities(agent.entities || [
+      { id: 1, name: 'customer_name', description: 'Nome completo do cliente' },
+      { id: 2, name: 'customer_email', description: 'E-mail de contato' },
+      { id: 3, name: 'customer_phone', description: 'Telefone ou WhatsApp' }
+    ]);
+    setKnowledgeDocuments(agent.knowledge_base?.map((id: string) => ({ id, name: 'Doc: ' + id.slice(-6) })) || []);
     setIsDrawerOpen(true);
   };
 
@@ -123,7 +139,8 @@ export default function DashboardPage() {
           first_message: firstMessage,
           language,
           voice_id: voiceId,
-          entities: entities.filter(e => e.name && e.description)
+          entities: entities.filter(e => e.name && e.description),
+          knowledge_base: knowledgeDocuments.map(doc => doc.id)
         })
       });
       const data = await res.json();
@@ -140,6 +157,34 @@ export default function DashboardPage() {
     }
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingFile(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('name', file.name);
+
+    try {
+      const res = await fetch(`${API_PREFIX}/knowledge/upload`, {
+        method: 'POST',
+        headers: { 'user-id': userId },
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setKnowledgeDocuments(prev => [...prev, { id: data.documentation_id, name: file.name }]);
+      } else {
+        alert("Erro no upload: " + data.detail);
+      }
+    } catch (err) {
+      alert("Erro ao enviar arquivo.");
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-[#0F1115] flex items-center justify-center p-6 font-sans antialiased text-white">
@@ -147,20 +192,20 @@ export default function DashboardPage() {
           <div className="flex justify-center mb-8">
             <div className="w-12 h-12 bg-[#3BC671] rounded-xl flex items-center justify-center text-black font-bold text-xl shadow-lg shadow-green-500/20">11</div>
           </div>
-          <h1 className="text-2xl font-bold mb-1 text-center tracking-tight">Welcome to Eleven Chat</h1>
-          <p className="text-slate-500 text-center mb-10 text-sm font-medium">Professional Conversational Intelligence</p>
+          <h1 className="text-2xl font-bold mb-1 text-center tracking-tight">Bem-vindo ao Eleven Chat</h1>
+          <p className="text-slate-500 text-center mb-10 text-sm font-medium">Inteligência Conversacional Profissional</p>
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
-              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Work Email</label>
-              <input value={email} onChange={e => setEmail(e.target.value)} type="email" required className="w-full bg-[#23262F] border border-[#2A2E37] rounded-xl p-4 outline-none focus:border-[#3BC671] transition-all text-sm placeholder:text-slate-600" placeholder="jane@company.com" />
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">E-mail Profissional</label>
+              <input value={email} onChange={e => setEmail(e.target.value)} type="email" required className="w-full bg-[#23262F] border border-[#2A2E37] rounded-xl p-4 outline-none focus:border-[#3BC671] transition-all text-sm placeholder:text-slate-600" placeholder="voce@empresa.com" />
             </div>
             <div className="space-y-2">
-              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Password</label>
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Senha</label>
               <input value={password} onChange={e => setPassword(e.target.value)} type="password" required className="w-full bg-[#23262F] border border-[#2A2E37] rounded-xl p-4 outline-none focus:border-[#3BC671] transition-all text-sm placeholder:text-slate-600" placeholder="••••••••" />
             </div>
             <button type="submit" className="w-full bg-[#3BC671] text-black py-4 rounded-xl font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-[#3BC671]/10 mt-4 active:scale-[0.99]">
-              Sign In
+              Entrar
             </button>
           </form>
         </div>
@@ -179,9 +224,9 @@ export default function DashboardPage() {
 
         <nav className="flex-1 px-4 space-y-1">
           {[
-            { id: 'dash', label: 'Dashboard', icon: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z' },
-            { id: 'agents', label: 'Conversational Agents', icon: 'M12 2a10 10 0 0 1 10 10c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2z' },
-            { id: 'logs', label: 'Interaction Logs', icon: 'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z' },
+            { id: 'dash', label: 'Painel Geral', icon: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z' },
+            { id: 'agents', label: 'Agentes de Voz', icon: 'M12 2a10 10 0 0 1 10 10c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2z' },
+            { id: 'logs', label: 'Histórico e Leads', icon: 'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z' },
           ].map(item => (
             <button
               key={item.id}
@@ -197,7 +242,7 @@ export default function DashboardPage() {
         <div className="p-4 border-t border-slate-800/50">
           <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold text-slate-400 hover:text-red-400 hover:bg-red-400/5 transition-colors">
             <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-            Sign Out
+            Sair
           </button>
         </div>
       </aside>
@@ -206,12 +251,12 @@ export default function DashboardPage() {
       <main className="flex-1 overflow-y-auto">
         <header className="h-16 flex items-center justify-between px-8 bg-white border-b border-slate-200 sticky top-0 z-10">
           <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest">
-            {activeTab === 'dash' ? 'Overview' : activeTab === 'agents' ? 'Conversational AI' : 'Insights'}
+            {activeTab === 'dash' ? 'Visão Geral' : activeTab === 'agents' ? 'IA Conversacional' : 'Insights'}
           </h2>
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex items-center gap-2 text-[11px] font-bold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
               <div className="w-1.5 h-1.5 bg-[#3BC671] rounded-full"></div>
-              Live Engine
+              Motor Ativo
             </div>
           </div>
         </header>
@@ -222,9 +267,9 @@ export default function DashboardPage() {
               {/* Compact Stats */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
-                  { label: 'Conversations', val: stats.total_conversations, sub: 'Total processed interactions' },
-                  { label: 'Leads Detected', val: stats.total_leads, sub: 'Qualified prospects captured' },
-                  { label: 'Conversion Rate', val: stats.conversion_rate, sub: 'Performance benchmark' }
+                  { label: 'Conversas', val: stats.total_conversations, sub: 'Total de interações processadas' },
+                  { label: 'Leads Detectados', val: stats.total_leads, sub: 'Potenciais clientes qualificados' },
+                  { label: 'Taxa de Conversão', val: stats.conversion_rate, sub: 'Benchmark de performance' }
                 ].map((s, i) => (
                   <div key={i} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                     <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">{s.label}</p>
@@ -237,7 +282,7 @@ export default function DashboardPage() {
               {/* Interaction Breakdown */}
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden text-sm">
                 <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/30">
-                  <h3 className="font-bold text-slate-900">Recent Stream</h3>
+                  <h3 className="font-bold text-slate-900">Fluxo em Tempo Real</h3>
                   <button onClick={fetchData} className="text-slate-400 hover:text-slate-600">
                     <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M4 4v5h.582M20 20v-5h-.581M18.46 6.54A9 9 0 0 1 20 12h-2M5.54 18.46A9 9 0 0 1 4 12h2" /></svg>
                   </button>
@@ -247,7 +292,7 @@ export default function DashboardPage() {
                     <div key={i.conversation_id} className="p-6 hover:bg-slate-50 transition-colors">
                       <div className="flex justify-between gap-4 mb-3">
                         <div className="bg-slate-900 text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded leading-none flex items-center h-fit">ID: {i.conversation_id.slice(-6)}</div>
-                        <span className={`text-[10px] font-bold uppercase tracking-wider ${i.sentiment === 'positive' ? 'text-[#3BC671]' : 'text-slate-400'}`}>{i.sentiment || 'Neutral'}</span>
+                        <span className={`text-[10px] font-bold uppercase tracking-wider ${i.sentiment === 'positive' ? 'text-[#3BC671]' : 'text-slate-400'}`}>{i.sentiment || 'Neutro'}</span>
                       </div>
                       <p className="text-slate-600 font-medium leading-relaxed mb-4">{i.summary}</p>
                       <div className="flex flex-wrap gap-2">
@@ -261,7 +306,7 @@ export default function DashboardPage() {
                     </div>
                   ))}
                   {interactions.length === 0 && (
-                    <div className="p-12 text-center text-slate-400 font-semibold italic">No data detected for this user.</div>
+                    <div className="p-12 text-center text-slate-400 font-semibold italic">Nenhum dado detectado para este usuário.</div>
                   )}
                 </div>
               </div>
@@ -272,15 +317,15 @@ export default function DashboardPage() {
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
               <div className="flex justify-between items-end">
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-1">My Agents</h3>
-                  <p className="text-sm text-slate-500 font-medium">Manage and deploy your conversational units</p>
+                  <h3 className="text-xl font-bold text-slate-900 mb-1">Meus Agentes</h3>
+                  <p className="text-sm text-slate-500 font-medium">Gerencie e publique suas unidades conversacionais</p>
                 </div>
                 <button
                   onClick={openNewAgentDrawer}
                   className="bg-[#3BC671] text-black px-6 py-2.5 rounded-xl font-bold text-sm shadow-xl shadow-green-500/10 hover:shadow-green-500/20 active:scale-95 transition-all text-sm flex items-center gap-2"
                 >
                   <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14" /></svg>
-                  Create Agent
+                  Criar Agente
                 </button>
               </div>
 
@@ -311,8 +356,8 @@ export default function DashboardPage() {
                 ))}
                 {agents.length === 0 && (
                   <div className="col-span-full py-20 bg-slate-100/50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 group">
-                    <p className="font-bold text-sm tracking-tight mb-4">No active conversational units found</p>
-                    <button onClick={openNewAgentDrawer} className="text-[#3BC671] font-bold text-xs uppercase tracking-widest border border-[#3BC671]/30 px-6 py-2 rounded-lg hover:bg-white transition-all">Deploy first agent</button>
+                    <p className="font-bold text-sm tracking-tight mb-4">Nenhum agente ativo encontrado</p>
+                    <button onClick={openNewAgentDrawer} className="text-[#3BC671] font-bold text-xs uppercase tracking-widest border border-[#3BC671]/30 px-6 py-2 rounded-lg hover:bg-white transition-all">Configurar primeiro agente</button>
                   </div>
                 )}
               </div>
@@ -324,10 +369,10 @@ export default function DashboardPage() {
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
-                    <th className="px-6 py-4 font-bold text-slate-400 uppercase text-[10px] tracking-widest">Transaction ID</th>
-                    <th className="px-6 py-4 font-bold text-slate-400 uppercase text-[10px] tracking-widest">Sentiment</th>
-                    <th className="px-6 py-4 font-bold text-slate-400 uppercase text-[10px] tracking-widest">Summary Preview</th>
-                    <th className="px-6 py-4 font-bold text-slate-400 uppercase text-[10px] tracking-widest text-right">Action</th>
+                    <th className="px-6 py-4 font-bold text-slate-400 uppercase text-[10px] tracking-widest">ID da Transação</th>
+                    <th className="px-6 py-4 font-bold text-slate-400 uppercase text-[10px] tracking-widest">Sentimento</th>
+                    <th className="px-6 py-4 font-bold text-slate-400 uppercase text-[10px] tracking-widest">Resumo da Conversa</th>
+                    <th className="px-6 py-4 font-bold text-slate-400 uppercase text-[10px] tracking-widest text-right">Ação</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -339,7 +384,7 @@ export default function DashboardPage() {
                       </td>
                       <td className="px-6 py-4 text-slate-600 font-medium truncate max-w-[300px]">{i.summary}</td>
                       <td className="px-6 py-4 text-right">
-                        <button className="p-1 px-3 bg-slate-100 text-slate-900 rounded-lg text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-all">DETAIL</button>
+                        <button className="p-1 px-3 bg-slate-100 text-slate-900 rounded-lg text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-all">DETALHES</button>
                       </td>
                     </tr>
                   ))}
@@ -357,8 +402,8 @@ export default function DashboardPage() {
           <div className="relative w-full max-w-lg bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right-8 duration-500">
             <header className="px-8 py-6 border-b border-slate-100 flex items-center justify-between shrink-0">
               <div>
-                <h2 className="text-xl font-bold text-slate-900">{editingAgentId ? 'Agent Settings' : 'New Agent Deployment'}</h2>
-                <p className="text-xs text-slate-500 font-medium">{editingAgentId ? 'Configuring active model instance' : 'Initializing new conversational unit'}</p>
+                <h2 className="text-xl font-bold text-slate-900">{editingAgentId ? 'Ajustes do Agente' : 'Novo Agente'}</h2>
+                <p className="text-xs text-slate-500 font-medium">{editingAgentId ? 'Configurando instância ativa' : 'Inicializando nova unidade conversacional'}</p>
               </div>
               <button onClick={() => setIsDrawerOpen(false)} className="p-2 text-slate-300 hover:text-slate-900 transition-colors">
                 <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M6 18L18 6M6 6l12 12" /></svg>
@@ -368,47 +413,82 @@ export default function DashboardPage() {
             <div className="flex-1 overflow-y-auto p-8 space-y-8">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Asset Name</label>
-                  <input value={botName} onChange={(e) => setBotName(e.target.value)} type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 outline-none focus:border-[#3BC671] transition-all font-semibold text-sm placeholder:text-slate-300" placeholder="e.g. Maria AI" />
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nome do Ativo</label>
+                  <input value={botName} onChange={(e) => setBotName(e.target.value)} type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 outline-none focus:border-[#3BC671] transition-all font-semibold text-sm placeholder:text-slate-300" placeholder="Ex: Maria IA" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Business Domain</label>
-                  <input value={area} onChange={(e) => setArea(e.target.value)} type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 outline-none focus:border-[#3BC671] transition-all font-semibold text-sm placeholder:text-slate-300" placeholder="e.g. Sales" />
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Domínio de Negócio</label>
+                  <input value={area} onChange={(e) => setArea(e.target.value)} type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 outline-none focus:border-[#3BC671] transition-all font-semibold text-sm placeholder:text-slate-300" placeholder="Ex: Vendas" />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Core Personality & Knowledge Base</label>
-                <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={5} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 outline-none focus:border-[#3BC671] transition-all font-medium text-sm text-slate-700 leading-relaxed resize-none" placeholder="Instruction set for behavioral model..." />
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Personalidade e Base de Conhecimento</label>
+                <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={5} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 outline-none focus:border-[#3BC671] transition-all font-medium text-sm text-slate-700 leading-relaxed resize-none" placeholder="Instruções para o comportamento do modelo..." />
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">First Interaction Payload</label>
-                <input value={firstMessage} onChange={(e) => setFirstMessage(e.target.value)} type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 outline-none focus:border-[#3BC671] transition-all font-semibold text-sm" placeholder="Trigger message..." />
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Mensagem de Saudação</label>
+                <input value={firstMessage} onChange={(e) => setFirstMessage(e.target.value)} type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 outline-none focus:border-[#3BC671] transition-all font-semibold text-sm" placeholder="Primeira frase do robô..." />
               </div>
 
               <div className="space-y-4">
                 <div className="flex justify-between items-center bg-slate-900 p-4 rounded-xl">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Data Extraction Protocols</span>
-                  <button className="text-[10px] font-bold text-black bg-[#3BC671] px-3 py-1 rounded-lg">LIVE</button>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Protocolos de Extração de Dados</span>
+                  <button className="text-[10px] font-bold text-black bg-[#3BC671] px-3 py-1 rounded-lg">ATIVO</button>
                 </div>
                 <div className="space-y-2">
                   {entities.map(e => (
                     <div key={e.id} className="bg-white border border-slate-200 p-4 rounded-xl flex items-center gap-4 group">
                       <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-[10px] font-bold text-slate-400 group-hover:text-[#3BC671] transition-colors uppercase">{e.name.slice(0, 2)}</div>
-                      <div>
+                      <div className="flex-1">
                         <p className="text-[11px] font-bold text-slate-900 leading-none mb-1">{e.name}</p>
                         <p className="text-[10px] text-slate-400 font-medium">{e.description}</p>
                       </div>
                     </div>
                   ))}
+                  <div className="p-2 text-center">
+                    <p className="text-[10px] text-slate-400 font-medium italic">Dados capturados automaticamente por padrão na ElevenLabs</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Knowledge Base Documents */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center bg-slate-100 p-4 rounded-xl">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Base de Conhecimento (Documentos)</span>
+                  <label className="cursor-pointer text-[10px] font-bold text-white bg-slate-900 px-3 py-1 rounded-lg hover:bg-slate-800 transition-colors">
+                    {uploadingFile ? 'Enviando...' : 'Subir Arquivo'}
+                    <input type="file" className="hidden" onChange={handleFileUpload} accept=".pdf,.txt,.docx" disabled={uploadingFile} />
+                  </label>
+                </div>
+                <div className="space-y-2">
+                  {knowledgeDocuments.map(doc => (
+                    <div key={doc.id} className="bg-white border border-slate-200 p-4 rounded-xl flex items-center gap-4">
+                      <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center text-blue-500">
+                        <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z" /></svg>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[11px] font-bold text-slate-900 leading-none truncate">{doc.name}</p>
+                        <p className="text-[10px] text-[#3BC671] font-bold uppercase mt-1">Sincronizado</p>
+                      </div>
+                      <button onClick={() => setKnowledgeDocuments(prev => prev.filter(d => d.id !== doc.id))} className="text-slate-300 hover:text-red-500 transition-colors">
+                        <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16" /></svg>
+                      </button>
+                    </div>
+                  ))}
+                  {knowledgeDocuments.length === 0 && (
+                    <div className="py-8 text-center border-2 border-dashed border-slate-100 rounded-xl">
+                      <p className="text-[11px] text-slate-400 font-medium">Nenhum documento adicionado</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
             <footer className="p-8 border-t border-slate-100 bg-slate-50/50">
               <button disabled={loading} onClick={handleSaveAgent} className="w-full bg-slate-900 text-white p-4 rounded-xl font-bold text-sm hover:bg-slate-800 transition-all flex items-center justify-center gap-3 active:scale-[0.98]">
-                {loading ? <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> : (editingAgentId ? 'Update instance' : 'Initialize deployment')}
+                {loading ? <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> : (editingAgentId ? 'Atualizar Instância' : 'Inicializar Agente')}
               </button>
             </footer>
           </div>
@@ -421,8 +501,8 @@ export default function DashboardPage() {
           <div className="bg-[#181A20] w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden border border-[#2A2E37]" onClick={e => e.stopPropagation()}>
             <div className="p-8 flex justify-between items-center border-b border-[#2A2E37]">
               <div>
-                <h3 className="text-lg font-bold text-white tracking-tight">Test Sandbox: {botName}</h3>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Real-time inference window</p>
+                <h3 className="text-lg font-bold text-white tracking-tight">Ambiente de Teste: {botName}</h3>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Janela de inferência em tempo real</p>
               </div>
               <button onClick={() => setShowTest(false)} className="w-10 h-10 rounded-xl bg-[#23262F] border border-[#2A2E37] flex items-center justify-center text-slate-400 hover:text-white transition-all">
                 <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M6 18L18 6M6 6l12 12" /></svg>
