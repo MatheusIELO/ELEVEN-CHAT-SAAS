@@ -8,6 +8,11 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(req: Request) {
     try {
+        const secretKey = req.headers.get('x-secret-key');
+        if (secretKey !== 'eleven_chat_master_secret') {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         const body = await req.json();
         const { method, params, id } = body;
 
