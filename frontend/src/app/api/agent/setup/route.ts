@@ -17,6 +17,28 @@ export async function POST(req: Request) {
 
         const setup = await req.json();
 
+        const payload = {
+            name: setup.bot_name,
+            conversation_config: {
+                agent: {
+                    prompt: {
+                        prompt: `Seu nome é ${setup.bot_name}. Você atua na área de ${setup.area}. ${setup.prompt}`
+                    },
+                    first_message: setup.first_message,
+                    language: setup.language
+                },
+                tts_config: {
+                    model_id: setup.model_id,
+                    voice_id: setup.voice_id
+                }
+            },
+            platform_settings: {
+                zero_retention_mode: false
+            }
+        };
+
+        console.log('Updating agent with payload:', JSON.stringify(payload, null, 2));
+
         // 1. Atualizar na ElevenLabs
         const response = await fetch(`https://api.elevenlabs.io/v1/convai/agents/${setup.agent_id}`, {
             method: 'PATCH',
@@ -24,27 +46,15 @@ export async function POST(req: Request) {
                 'xi-api-key': apiKey,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                name: setup.bot_name,
-                conversation_config: {
-                    agent: {
-                        prompt: {
-                            prompt: `Seu nome é ${setup.bot_name}. Você atua na área de ${setup.area}. ${setup.prompt}`
-                        },
-                        first_message: setup.first_message,
-                        language: setup.language
-                    },
-                    tts_config: {
-                        model_id: setup.model_id,
-                        voice_id: setup.voice_id
-                    }
-                }
-            })
+            body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
-            const errorText = await response.text();
-            return NextResponse.json({ detail: `Erro ElevenLabs: ${errorText}` }, { status: response.status });
+            const errorData = await response.json().catch(() => ({ error: 'Could not parse JSON' }));
+            console.error('ElevenLabs Update Error:', errorData);
+            return NextResponse.json({
+                detail: `Erro ElevenLabs Update: ${JSON.stringify(errorData)}`
+            }, { status: response.status });
         }
 
         // 2. Configurar Data Collection
