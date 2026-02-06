@@ -6,10 +6,22 @@ export const dynamic = 'force-dynamic';
  * ElevenLabs MCP Server Implementation
  * Standard: Model Context Protocol (JSON-RPC 2.0 over HTTP)
  */
+export async function OPTIONS() {
+    return new NextResponse(null, {
+        status: 204,
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, X-Secret-Key',
+        },
+    });
+}
+
 export async function POST(req: Request) {
     try {
-        const secretKey = req.headers.get('x-secret-key');
+        const secretKey = req.headers.get('x-secret-key') || req.headers.get('X-Secret-Key');
         if (secretKey !== 'eleven_chat_master_secret') {
+            console.error('[MCP] Unauthorized access attempt');
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
@@ -21,13 +33,13 @@ export async function POST(req: Request) {
         // Standard JSON-RPC 2.0 Response Template
         const response = (result: any) => NextResponse.json({
             jsonrpc: "2.0",
-            id: id || null,
+            id: id !== undefined ? id : null,
             result
         });
 
         const error = (code: number, message: string) => NextResponse.json({
             jsonrpc: "2.0",
-            id: id || null,
+            id: id !== undefined ? id : null,
             error: { code, message }
         });
 
