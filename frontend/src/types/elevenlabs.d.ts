@@ -1,5 +1,11 @@
-declare namespace JSX {
-    interface IntrinsicElements {
-        'elevenlabs-convai': any;
+import * as React from 'react';
+
+declare global {
+    namespace React {
+        namespace JSX {
+            interface IntrinsicElements {
+                'elevenlabs-convai': any;
+            }
+        }
     }
 }

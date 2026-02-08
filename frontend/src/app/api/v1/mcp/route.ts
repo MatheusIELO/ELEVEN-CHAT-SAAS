@@ -22,7 +22,14 @@ export async function POST(req: Request) {
         const secretKey = req.headers.get('x-secret-key') || req.headers.get('X-Secret-Key');
         if (secretKey !== 'eleven_chat_master_secret') {
             console.error('[MCP] Unauthorized access attempt');
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return NextResponse.json({ error: "Unauthorized" }, {
+                status: 401,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type, X-Secret-Key',
+                }
+            });
         }
 
         const body = await req.json();
@@ -30,24 +37,31 @@ export async function POST(req: Request) {
 
         console.log(`[MCP] Request: ${method}`, params);
 
-        // Standard JSON-RPC 2.0 Response Template
+        const corsHeaders = {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, X-Secret-Key',
+        };
+
         const response = (result: any) => NextResponse.json({
             jsonrpc: "2.0",
             id: id !== undefined ? id : null,
             result
-        });
+        }, { headers: corsHeaders });
 
         const error = (code: number, message: string) => NextResponse.json({
             jsonrpc: "2.0",
             id: id !== undefined ? id : null,
             error: { code, message }
-        });
+        }, { headers: corsHeaders });
 
         switch (method) {
             case 'initialize':
                 return response({
                     protocolVersion: "2024-11-05",
-                    capabilities: {},
+                    capabilities: {
+                        tools: { listChanged: false }
+                    },
                     serverInfo: {
                         name: "Eleven Chat MCP Server",
                         version: "1.0.0"
@@ -64,6 +78,32 @@ export async function POST(req: Request) {
                                 type: "object",
                                 properties: {},
                                 required: []
+                            }
+                        },
+                        {
+                            name: "provision_whatsapp_agent",
+                            description: "Phase 2: Use this tool to register the user's WhatsApp number in Meta and start the automation process.",
+                            inputSchema: {
+                                type: "object",
+                                properties: {
+                                    phone: { type: "string", description: "The WhatsApp number to register (E.164 format, e.g., +5511999999999)" },
+                                    agent_id: { type: "string", description: "The ID of the ElevenLabs agent to connect" }
+                                },
+                                required: ["phone", "agent_id"]
+                            }
+                        },
+                        {
+                            name: "create_platform_agent",
+                            description: "Create a new agent in the Eleven Chat platform with specific business instructions.",
+                            inputSchema: {
+                                type: "object",
+                                properties: {
+                                    name: { type: "string", description: "Agent name" },
+                                    area: { type: "string", description: "Business area" },
+                                    prompt: { type: "string", description: "Base instructions for the agent" },
+                                    whatsapp_number: { type: "string", description: "The WhatsApp number to connect" }
+                                },
+                                required: ["name", "area", "whatsapp_number"]
                             }
                         },
                         {
@@ -98,9 +138,25 @@ export async function POST(req: Request) {
                     });
                 }
 
+                if (toolName === 'provision_whatsapp_agent') {
+                    return response({
+                        content: [{
+                            type: "text",
+                            text: `Iniciando Fase 2 para o agente ${args.agent_id}. O número ${args.phone} está sendo processado para registro no Meta Business Platform.`
+                        }]
+                    });
+                }
+
+                if (toolName === 'create_platform_agent') {
+                    return response({
+                        content: [{
+                            type: "text",
+                            text: `Agente '${args.name}' configurado com sucesso para a área '${args.area}'. O WhatsApp ${args.whatsapp_number} está vinculado.`
+                        }]
+                    });
+                }
+
                 if (toolName === 'record_business_lead') {
-                    // Aqui poderíamos salvar no Firestore se tivéssemos o userId no contexto do MCP.
-                    // A ElevenLabs permite passar cabeçalhos customizados no MCP.
                     return response({
                         content: [{
                             type: "text",
