@@ -9,8 +9,10 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@mastra/core": "^1.2.0",
     "firebase": "^12.8.0",
     "firebase-admin": "^13.6.1",
+    "lucide-react": "^0.563.0",
     "luxon": "^3.7.2",
     "next": "16.1.6",
     "react": "19.2.3",

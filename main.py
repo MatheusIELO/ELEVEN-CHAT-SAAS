@@ -2,6 +2,8 @@ from fastapi import FastAPI, Request, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
+import subprocess
+import asyncio
 import os
 import json
 import httpx
@@ -365,6 +367,89 @@ async def handle_whatsapp_webhook(request: Request):
     # 3. Envia para ElevenLabs Chat
     # 4. Responde via Meta API
     return {"status": "received"}
+
+# --- AUTOMATION ---
+
+class AutomationStartRequest(BaseModel):
+    agent_id: str
+    email: str
+    password: str
+    phone: str
+
+class OTPRequest(BaseModel):
+    automation_id: str
+    otp_code: str
+
+@app.post("/api/v1/automation/start")
+async def start_whatsapp_automation(req: AutomationStartRequest, user_id: str = Header(None)):
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User ID required")
+    
+    # Cria ID único para a automação
+    import time
+    automation_id = f"wa_{req.agent_id}_{int(time.time())}"
+    
+    # Registra no Firestore
+    db.collection('automations').doc(automation_id).set({
+        'user_id': user_id,
+        'agent_id': req.agent_id,
+        'phone': req.phone,
+        'status': 'starting',
+        'timestamp': firestore.SERVER_TIMESTAMP
+    })
+
+    # Inicia o script Python em background
+    # Nota: Em produção, isso deveria ir para uma fila (Celery/Redis)
+    # Por agora, rodaremos via shell bypassando bloqueio de async
+    cmd = [
+        "python", "automation/connector.py",
+        req.agent_id, req.email, req.password, req.phone
+    ]
+    
+    # Executa de forma assíncrona para não travar a API
+    asyncio.create_subprocess_exec(*cmd)
+
+    return {"automation_id": automation_id, "status": "started"}
+
+@app.post("/api/v1/automation/submit-otp")
+async def submit_otp(req: OTPRequest, user_id: str = Header(None)):
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User ID required")
+    
+    # Verifica se a automação pertence ao user
+    auto_ref = db.collection('automations').doc(req.automation_id)
+    doc = auto_ref.get()
+    
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Automation not found")
+        
+    if doc.to_dict().get('user_id') != user_id:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    # Salva o OTP para o script polling pegar
+    auto_ref.update({
+        'otp_code': req.otp_code,
+        'status': 'otp_submitted'
+    })
+    
+    return {"status": "success"}
+
+@app.get("/api/v1/automation/status/{automation_id}")
+async def get_automation_status(automation_id: str, user_id: str = Header(None)):
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User ID required")
+        
+    doc = db.collection('automations').doc(automation_id).get()
+    if not doc.exists:
+        return {"status": "not_found"}
+        
+    data = doc.to_dict()
+    if data.get('user_id') != user_id:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+        
+    return data
+
+# --- END AUTOMATION ---
 
 # --- END WHATSAPP ---
 

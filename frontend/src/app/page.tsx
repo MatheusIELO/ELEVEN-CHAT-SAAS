@@ -37,6 +37,15 @@ export default function DashboardPage() {
 
   const [showTest, setShowTest] = useState(false);
 
+  // Automation State
+  const [autoEmail, setAutoEmail] = useState('');
+  const [autoPassword, setAutoPassword] = useState('');
+  const [targetPhone, setTargetPhone] = useState('');
+  const [automationId, setAutomationId] = useState<string | null>(null);
+  const [automationData, setAutomationData] = useState<any>(null);
+  const [otpValue, setOtpValue] = useState('');
+  const [isAutoConnecting, setIsAutoConnecting] = useState(false);
+
   useEffect(() => {
     const savedUser = localStorage.getItem('eleven_user');
     if (savedUser) {
@@ -99,6 +108,9 @@ export default function DashboardPage() {
       { id: 3, name: 'customer_phone', description: 'Telefone ou WhatsApp' }
     ]);
     setKnowledgeDocuments([]);
+    setAutomationId(null);
+    setAutomationData(null);
+    setOtpValue('');
   };
 
   const openNewAgentDrawer = () => {
@@ -120,7 +132,73 @@ export default function DashboardPage() {
       { id: 3, name: 'customer_phone', description: 'Telefone ou WhatsApp' }
     ]);
     setKnowledgeDocuments(agent.knowledge_base?.map((id: string) => ({ id, name: 'Doc: ' + id.slice(-6) })) || []);
+    setAutomationId(null);
+    setAutomationData(null);
     setIsDrawerOpen(true);
+  };
+
+  const checkAutomationStatus = async (id: string) => {
+    try {
+      const res = await fetch(`${API_PREFIX}/automation/status/${id}`, {
+        headers: { 'user-id': userId }
+      });
+      const data = await res.json();
+      setAutomationData(data);
+      if (data.status === 'success' || data.status === 'failed') {
+        setAutomationId(null);
+        setIsAutoConnecting(false);
+      }
+    } catch (err) {
+      console.error("Status check error:", err);
+    }
+  };
+
+  useEffect(() => {
+    let interval: any;
+    if (automationId) {
+      interval = setInterval(() => checkAutomationStatus(automationId), 5000);
+    }
+    return () => clearInterval(interval);
+  }, [automationId]);
+
+  const handleStartAutomation = async () => {
+    if (!autoEmail || !autoPassword || !targetPhone) return alert("Preencha email, senha e telefone para automação.");
+    setIsAutoConnecting(true);
+    try {
+      const res = await fetch(`${API_PREFIX}/automation/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'user-id': userId },
+        body: JSON.stringify({
+          agent_id: agentId,
+          email: autoEmail,
+          password: autoPassword,
+          phone: targetPhone
+        })
+      });
+      const data = await res.json();
+      setAutomationId(data.automation_id);
+    } catch (err) {
+      alert("Erro ao iniciar automação.");
+      setIsAutoConnecting(false);
+    }
+  };
+
+  const handleSubmitOTP = async () => {
+    if (!otpValue || !automationId) return;
+    try {
+      await fetch(`${API_PREFIX}/automation/submit-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'user-id': userId },
+        body: JSON.stringify({
+          automation_id: automationId,
+          otp_code: otpValue
+        })
+      });
+      alert("Código enviado! Aguardando o bot processar...");
+      setOtpValue('');
+    } catch (err) {
+      alert("Erro ao enviar código.");
+    }
   };
 
   const handleSaveAgent = async () => {
@@ -484,6 +562,75 @@ export default function DashboardPage() {
                   )}
                 </div>
               </div>
+
+              {/* WhatsApp Automation Section */}
+              {editingAgentId && (
+                <div className="space-y-4 pt-4 border-t border-slate-100">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 bg-[#3BC671] rounded-full animate-pulse"></div>
+                    <span className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">Conexão Automática WhatsApp (Bot Alpha)</span>
+                  </div>
+
+                  {!automationId && !automationData?.status && (
+                    <div className="bg-slate-50 border border-slate-200 p-6 rounded-2xl space-y-4">
+                      <p className="text-[11px] text-slate-500 font-medium">Este bot irá logar na sua conta da ElevenLabs e realizar a conexão via Meta automaticamente.</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <input value={autoEmail} onChange={e => setAutoEmail(e.target.value)} type="email" placeholder="Email ElevenLabs" className="bg-white border border-slate-200 rounded-lg p-2.5 text-xs outline-none focus:border-[#3BC671]" />
+                        <input value={autoPassword} onChange={e => setAutoPassword(e.target.value)} type="password" placeholder="Senha ElevenLabs" className="bg-white border border-slate-200 rounded-lg p-2.5 text-xs outline-none focus:border-[#3BC671]" />
+                      </div>
+                      <input value={targetPhone} onChange={e => setTargetPhone(e.target.value)} type="text" placeholder="Número do Cliente (Ex: +55...)" className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-xs outline-none focus:border-[#3BC671]" />
+                      <button onClick={handleStartAutomation} disabled={isAutoConnecting || !agentId} className="w-full bg-[#3BC671] text-black font-bold text-xs py-3 rounded-xl shadow-lg shadow-green-500/10 hover:shadow-green-500/20 active:scale-95 transition-all">
+                        {isAutoConnecting ? 'INICIANDO BOT...' : 'EXECUTAR AUTOMAÇÃO'}
+                      </button>
+                    </div>
+                  )}
+
+                  {automationId && (
+                    <div className="bg-slate-900 text-white p-6 rounded-2xl space-y-4 animate-pulse">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">Status do Bot</span>
+                        <span className="text-[10px] font-bold bg-[#3BC671] text-black px-2 py-0.5 rounded">{automationData?.status || 'Processando'}</span>
+                      </div>
+
+                      {automationData?.step === 'awaiting_otp' && (
+                        <div className="space-y-3 pt-2">
+                          <p className="text-[11px] text-[#3BC671] font-bold">INSIRA O CÓDIGO SMS QUE O CLIENTE RECEBEU:</p>
+                          <div className="flex gap-2">
+                            <input value={otpValue} onChange={e => setOtpValue(e.target.value)} type="text" maxLength={6} placeholder="000000" className="flex-1 bg-white/10 border border-white/20 rounded-lg p-2.5 text-center text-lg font-bold tracking-[0.5em] outline-none focus:border-[#3BC671]" />
+                            <button onClick={handleSubmitOTP} className="bg-[#3BC671] text-black px-4 rounded-lg font-bold text-xs">OK</button>
+                          </div>
+                        </div>
+                      )}
+
+                      {automationData?.step !== 'awaiting_otp' && (
+                        <p className="text-[11px] text-slate-400 italic">O robô está navegando até a página de conexão...</p>
+                      )}
+                    </div>
+                  )}
+
+                  {automationData?.status === 'success' && (
+                    <div className="bg-green-50 border border-[#3BC671]/30 p-4 rounded-xl flex items-center gap-3">
+                      <div className="w-8 h-8 bg-[#3BC671] rounded-full flex items-center justify-center text-white">✓</div>
+                      <div>
+                        <p className="text-[11px] font-bold text-slate-900">Conexão finalizada!</p>
+                        <p className="text-[10px] text-slate-500">O robô completou a configuração com sucesso.</p>
+                      </div>
+                      <button onClick={() => setAutomationData(null)} className="ml-auto text-xs text-slate-400">Limpar</button>
+                    </div>
+                  )}
+
+                  {automationData?.status === 'failed' && (
+                    <div className="bg-red-50 border border-red-200 p-4 rounded-xl flex items-center gap-3">
+                      <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white">!</div>
+                      <div>
+                        <p className="text-[11px] font-bold text-slate-900">Falha na Automação</p>
+                        <p className="text-[10px] text-slate-500">{automationData?.error || 'Erro desconhecido'}</p>
+                      </div>
+                      <button onClick={() => setAutomationData(null)} className="ml-auto text-xs text-slate-400">Tentar Novamente</button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <footer className="p-8 border-t border-slate-100 bg-slate-50/50">
