@@ -139,7 +139,7 @@ export default function DashboardPage() {
 
   const checkAutomationStatus = async (id: string) => {
     try {
-      const res = await fetch(`${API_PREFIX}/automation/status/${id}`, {
+      const res = await fetch(`${API_PREFIX}/automation/whatsapp/status/${id}`, {
         headers: { 'user-id': userId }
       });
       const data = await res.json();
@@ -165,7 +165,7 @@ export default function DashboardPage() {
     if (!autoEmail || !autoPassword || !targetPhone) return alert("Preencha email, senha e telefone para automação.");
     setIsAutoConnecting(true);
     try {
-      const res = await fetch(`${API_PREFIX}/automation/start`, {
+      const res = await fetch(`${API_PREFIX}/automation/whatsapp/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'user-id': userId },
         body: JSON.stringify({
@@ -186,7 +186,7 @@ export default function DashboardPage() {
   const handleSubmitOTP = async () => {
     if (!otpValue || !automationId) return;
     try {
-      await fetch(`${API_PREFIX}/automation/submit-otp`, {
+      await fetch(`${API_PREFIX}/automation/whatsapp/submit-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'user-id': userId },
         body: JSON.stringify({
