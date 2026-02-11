@@ -25,9 +25,7 @@ export async function POST(req: Request) {
                         prompt: `Seu nome é ${setup.bot_name}. Você atua na área de ${setup.area}. ${setup.prompt}`
                     },
                     first_message: setup.first_message,
-                    language: setup.language,
-                    model_id: "eleven_flash_v2_5",
-                    knowledge_base: setup.knowledge_base || []
+                    language: setup.language || "pt"
                 },
                 tts_config: {
                     model_id: "eleven_flash_v2_5",
