@@ -26,6 +26,7 @@ export async function POST(req: Request) {
                     },
                     first_message: setup.first_message || `Olá! Eu sou ${setup.bot_name}, como posso te ajudar hoje?`,
                     language: setup.language || "pt",
+                    model_id: "eleven_turbo_v2_5",
                     knowledge_base: setup.knowledge_base || []
                 },
                 asr_config: {
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
                     language: setup.language || "pt"
                 },
                 tts_config: {
-                    model_id: "eleven_flash_v2_5",
+                    model_id: "eleven_turbo_v2_5",
                     voice_id: setup.voice_id || "21m00Tcm4TlvDq8ikWAM"
                 }
             },
