@@ -26,10 +26,10 @@ export async function POST(req: Request) {
                     },
                     first_message: setup.first_message,
                     language: setup.language,
-                    model_id: "eleven_turbo_v2_5"
+                    model_id: "eleven_flash_v2_5"
                 },
                 tts_config: {
-                    model_id: "eleven_turbo_v2_5",
+                    model_id: "eleven_flash_v2_5",
                     voice_id: setup.voice_id
                 }
             },
