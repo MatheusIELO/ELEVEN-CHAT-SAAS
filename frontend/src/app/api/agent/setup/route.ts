@@ -25,10 +25,11 @@ export async function POST(req: Request) {
                         prompt: `Seu nome é ${setup.bot_name}. Você atua na área de ${setup.area}. ${setup.prompt}`
                     },
                     first_message: setup.first_message,
-                    language: setup.language
+                    language: setup.language,
+                    model_id: "eleven_turbo_v2_5"
                 },
                 tts_config: {
-                    model_id: setup.model_id,
+                    model_id: "eleven_turbo_v2_5",
                     voice_id: setup.voice_id
                 }
             },
