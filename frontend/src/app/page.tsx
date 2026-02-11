@@ -45,6 +45,11 @@ export default function DashboardPage() {
 
   const [showTest, setShowTest] = useState(false);
 
+  // WhatsApp Connection State
+  const [isWADrawerOpen, setIsWADrawerOpen] = useState(false);
+  const [waAgent, setWaAgent] = useState<any>(null);
+  const [connectionMode, setConnectionMode] = useState<'automation' | 'native'>('automation');
+
   // Automation State
   const [autoEmail, setAutoEmail] = useState('');
   const [autoPassword, setAutoPassword] = useState('');
@@ -53,6 +58,13 @@ export default function DashboardPage() {
   const [automationData, setAutomationData] = useState<any>(null);
   const [otpValue, setOtpValue] = useState('');
   const [isAutoConnecting, setIsAutoConnecting] = useState(false);
+
+  // Native Meta State (Route 1)
+  const [metaAccessToken, setMetaAccessToken] = useState('');
+  const [metaPhoneNumberId, setMetaPhoneNumberId] = useState('');
+  const [metaWabaId, setMetaWabaId] = useState('');
+  const [isSavingNative, setIsSavingNative] = useState(false);
+
 
   useEffect(() => {
     const savedUser = localStorage.getItem('eleven_user');
@@ -214,6 +226,39 @@ export default function DashboardPage() {
     }
   };
 
+  const handleSaveNativeConfig = async () => {
+    if (!metaAccessToken || !metaPhoneNumberId) return alert("Preencha o Access Token e o Phone Number ID.");
+    setIsSavingNative(true);
+    try {
+      const res = await fetch(`${API_PREFIX}/agent/whatsapp/config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'user-id': userId },
+        body: JSON.stringify({
+          agent_id: waAgent.agent_id,
+          whatsapp_config: {
+            access_token: metaAccessToken,
+            phone_number_id: metaPhoneNumberId,
+            waba_id: metaWabaId,
+            mode: 'native'
+          }
+        })
+      });
+      if (res.ok) {
+        alert("Configuração salva com sucesso!");
+        setIsWADrawerOpen(false);
+        fetchData();
+      } else {
+        const error = await res.json();
+        alert("Erro ao salvar: " + error.detail);
+      }
+    } catch (err) {
+      alert("Erro de rede ao salvar configuração.");
+    } finally {
+      setIsSavingNative(false);
+    }
+  };
+
+
   const addEntity = () => setEntities((prev: any) => [...prev, { id: Date.now(), name: '', description: '' }]);
   const updateEntity = (id: number, field: 'name' | 'description', value: string) => setEntities((prev: any) => prev.map((e: any) => e.id === id ? { ...e, [field]: value } : e));
   const removeEntity = (id: number) => setEntities((prev: any) => prev.filter((e: any) => e.id !== id));
@@ -222,8 +267,29 @@ export default function DashboardPage() {
     setPrompt(prev => prev ? prev + '\n\n' + content : content);
   };
 
+  const openWADrawer = (agent: any) => {
+    setWaAgent(agent);
+    setTargetPhone(agent.whatsapp_number || '');
+
+    // Pre-fill native config if exists
+    if (agent.whatsapp_config) {
+      setConnectionMode(agent.whatsapp_config.mode || 'automation');
+      setMetaAccessToken(agent.whatsapp_config.access_token || '');
+      setMetaPhoneNumberId(agent.whatsapp_config.phone_number_id || '');
+      setMetaWabaId(agent.whatsapp_config.waba_id || '');
+    } else {
+      setConnectionMode('automation');
+      setMetaAccessToken('');
+      setMetaPhoneNumberId('');
+      setMetaWabaId('');
+    }
+
+    setIsWADrawerOpen(true);
+  };
+
   const handleSaveAgent = async () => {
-    if (!botName || !area || !targetPhone) return alert("Por favor, preencha os campos obrigatórios (Nome, Área e WhatsApp).");
+
+    if (!botName || !area) return alert("Por favor, preencha os campos obrigatórios (Nome e Área).");
     setLoading(true);
     try {
       const endpoint = editingAgentId ? `${API_PREFIX}/agent/setup` : `${API_PREFIX}/agent/create`;
@@ -238,8 +304,7 @@ export default function DashboardPage() {
           first_message: firstMessage,
           language,
           voice_id: voiceId,
-          whatsapp_number: targetPhone,
-          entities: entities.filter(e => e.name && e.description),
+          entities: entities.filter((e: any) => e.name && e.description),
           knowledge_base: knowledgeDocuments.map(doc => doc.id)
         })
       });
@@ -485,6 +550,24 @@ export default function DashboardPage() {
                       <p className="text-xs text-slate-500 font-medium leading-relaxed italic line-clamp-3">"{agent.prompt}"</p>
                       <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-white to-transparent"></div>
                     </div>
+
+                    <div className="flex-1 mt-2">
+                      <p className="text-xs text-slate-500 line-clamp-2">{agent.prompt || "Sem descrição disponível."}</p>
+                    </div>
+
+                    <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${agent.agent_id ? "bg-[#3BC671] animate-pulse" : "bg-slate-300"}`}></div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{agent.agent_id ? "Ativo" : "Em Espera"}</span>
+                      </div>
+                      <button
+                        onClick={() => openWADrawer(agent)}
+                        className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${agent.whatsapp_number || agent.whatsapp_config ? "bg-slate-100 text-slate-600 hover:bg-slate-200" : "bg-[#3BC671] text-black hover:brightness-110 shadow-lg shadow-green-500/10"}`}
+                      >
+                        {agent.whatsapp_number || agent.whatsapp_config ? "Ajustar WhatsApp" : "Conectar WhatsApp"}
+                      </button>
+
+                    </div>
                   </div>
                 ))}
                 {agents.length === 0 && (
@@ -538,7 +621,7 @@ export default function DashboardPage() {
                 <div>
                   <h2 className="text-xl font-bold text-slate-900">{editingAgentId ? 'Ajustes do Agente' : 'Novo Agente'}</h2>
                   <div className="flex gap-2 mt-1">
-                    {[1, 2, 3, 4].map(s => (
+                    {[1, 2, 3].map(s => (
                       <div key={s} className={`h-1.5 w-8 rounded-full transition-all ${drawerStep >= s ? 'bg-[#3BC671]' : 'bg-slate-100'}`} />
                     ))}
                   </div>
@@ -641,27 +724,83 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 )}
+              </div>
 
-                {drawerStep === 4 && (
-                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest border-l-4 border-[#3BC671] pl-3">Passo 4: Automação WhatsApp</h3>
 
-                    <div className="space-y-4 bg-slate-50 p-6 rounded-2xl border border-slate-200">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Número do WhatsApp (Obrigatório)</label>
-                        <input value={targetPhone} onChange={e => setTargetPhone(e.target.value)} type="text" placeholder="Ex: +5511999999999" className="w-full bg-white border border-slate-200 rounded-xl p-3.5 outline-none focus:border-[#3BC671] transition-all font-semibold text-sm placeholder:text-slate-300" />
-                        <p className="text-[10px] text-slate-500 font-medium">Este número será usado para registrar seu agente no Meta e habilitar o atendimento automático.</p>
+              <footer className="p-8 border-t border-slate-100 bg-white flex gap-3">
+                {drawerStep > 1 && (
+                  <button onClick={() => setDrawerStep(s => s - 1)} className="px-6 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all">
+                    Voltar
+                  </button>
+                )}
+                {drawerStep < 3 ? (
+                  <button onClick={() => setDrawerStep(s => s + 1)} className="flex-1 bg-[#3BC671] text-black p-4 rounded-xl font-bold text-sm hover:brightness-110 shadow-lg shadow-green-500/10 transition-all active:scale-[0.98]">
+                    Continuar
+                  </button>
+                ) : (
+                  <button disabled={loading} onClick={handleSaveAgent} className="flex-1 bg-slate-900 text-white p-4 rounded-xl font-bold text-sm hover:bg-slate-800 transition-all flex items-center justify-center gap-3 active:scale-[0.98]">
+                    {loading ? <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> : (editingAgentId ? 'Salvar Alterações' : 'Finalizar e Criar Agente')}
+                  </button>
+                )}
+              </footer>
+            </div>
+          </div >
+        )
+      }
+
+      {/* WhatsApp Connection Drawer */}
+      {
+        isWADrawerOpen && (
+          <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] animate-in fade-in transition-all" onClick={() => setIsWADrawerOpen(false)} />
+            <div className="relative w-full max-w-lg bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right-8 duration-500">
+              <header className="px-8 py-6 border-b border-slate-100 flex items-center justify-between shrink-0">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">Conectar WhatsApp</h2>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Agente: {waAgent?.bot_name}</p>
+                </div>
+                <button onClick={() => setIsWADrawerOpen(false)} className="p-2 text-slate-300 hover:text-slate-900 transition-colors">
+                  <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </header>
+
+              <div className="flex-1 overflow-y-auto p-8 space-y-8">
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+                  {/* Connection Mode Selector */}
+                  <div className="flex bg-slate-100 p-1 rounded-xl">
+                    <button
+                      onClick={() => setConnectionMode('automation')}
+                      className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all ${connectionMode === 'automation' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}
+                    >
+                      Automação (Lite)
+                    </button>
+                    <button
+                      onClick={() => setConnectionMode('native')}
+                      className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all ${connectionMode === 'native' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}
+                    >
+                      Meta API (Pro)
+                    </button>
+                  </div>
+
+                  {connectionMode === 'automation' ? (
+                    <>
+                      <div className="space-y-4 bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Número do WhatsApp (Obrigatório)</label>
+                          <input value={targetPhone} onChange={e => setTargetPhone(e.target.value)} type="text" placeholder="Ex: +5511999999999" className="w-full bg-white border border-slate-200 rounded-xl p-3.5 outline-none focus:border-[#3BC671] transition-all font-semibold text-sm placeholder:text-slate-300" />
+                          <p className="text-[10px] text-slate-500 font-medium">Este número será registrado no Meta para automação.</p>
+                        </div>
                       </div>
-                    </div>
 
-                    {editingAgentId ? (
                       <div className="space-y-4">
                         <div className="bg-[#0F1115] text-white p-6 rounded-2xl space-y-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-[#3BC671] rounded-xl flex items-center justify-center text-black font-black">11</div>
+                            <div className="w-10 h-10 bg-[#3BC671] rounded-xl flex items-center justify-center text-black font-black">
+                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
+                            </div>
                             <div>
-                              <p className="text-xs font-bold">Bot Alpha v2.0</p>
-                              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Aguardando gatilho</p>
+                              <p className="text-xs font-bold">Automation Cloud</p>
+                              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Powered by Mastra & Browser Use</p>
                             </div>
                           </div>
 
@@ -671,8 +810,15 @@ export default function DashboardPage() {
                                 <input value={autoEmail} onChange={e => setAutoEmail(e.target.value)} type="email" placeholder="Email ElevenLabs" className="bg-white/5 border border-white/10 rounded-lg p-3 text-xs outline-none focus:border-[#3BC671]" />
                                 <input value={autoPassword} onChange={e => setAutoPassword(e.target.value)} type="password" placeholder="Senha ElevenLabs" className="bg-white/5 border border-white/10 rounded-lg p-3 text-xs outline-none focus:border-[#3BC671]" />
                               </div>
-                              <button onClick={handleStartAutomation} disabled={isAutoConnecting} className="w-full bg-[#3BC671] text-black font-bold text-xs py-4 rounded-xl hover:brightness-110 active:scale-[0.98] transition-all">
-                                {isAutoConnecting ? 'CONECTANDO...' : 'CONECTAR WHATSAPP VIA CLOUD'}
+                              <button
+                                onClick={() => {
+                                  setAgentId(waAgent.agent_id);
+                                  handleStartAutomation();
+                                }}
+                                disabled={isAutoConnecting}
+                                className="w-full bg-[#3BC671] text-black font-bold text-xs py-4 rounded-xl hover:brightness-110 active:scale-[0.98] transition-all"
+                              >
+                                {isAutoConnecting ? 'INICIALIZANDO CLOUD...' : 'INICIAR REGISTRO NO META'}
                               </button>
                             </>
                           )}
@@ -686,32 +832,67 @@ export default function DashboardPage() {
                               </div>
                             </div>
                           )}
+
+                          {automationId && automationData?.step === 'success' && (
+                            <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl text-center">
+                              <p className="text-[#3BC671] text-xs font-bold uppercase tracking-widest">WhatsApp Conectado!</p>
+                            </div>
+                          )}
                         </div>
                       </div>
-                    ) : (
-                      <div className="py-12 text-center bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl">
-                        <p className="text-sm font-bold text-slate-400">Primeiro salve o agente para habilitar a automação de canal.</p>
+                    </>
+                  ) : (
+                    <div className="space-y-6">
+                      <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex gap-3">
+                        <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white shrink-0">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-bold text-blue-900 uppercase tracking-tight">Modo Nativo (Coexistência)</p>
+                          <p className="text-[10px] text-blue-700 font-medium leading-relaxed">Use o mesmo número no seu celular e na IA. Configure o Webhook abaixo no seu Meta Developer App.</p>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
 
-              <footer className="p-8 border-t border-slate-100 bg-white flex gap-3">
-                {drawerStep > 1 && (
-                  <button onClick={() => setDrawerStep(s => s - 1)} className="px-6 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all">
-                    Voltar
-                  </button>
-                )}
-                {drawerStep < 4 ? (
-                  <button onClick={() => setDrawerStep(s => s + 1)} className="flex-1 bg-[#3BC671] text-black p-4 rounded-xl font-bold text-sm hover:brightness-110 shadow-lg shadow-green-500/10 transition-all active:scale-[0.98]">
-                    Continuar
-                  </button>
-                ) : (
-                  <button disabled={loading} onClick={handleSaveAgent} className="flex-1 bg-slate-900 text-white p-4 rounded-xl font-bold text-sm hover:bg-slate-800 transition-all flex items-center justify-center gap-3 active:scale-[0.98]">
-                    {loading ? <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> : (editingAgentId ? 'Salvar Alterações' : 'Finalizar e Criar Agente')}
-                  </button>
-                )}
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Meta Access Token</label>
+                          <input value={metaAccessToken} onChange={e => setMetaAccessToken(e.target.value)} type="password" placeholder="EAAB..." className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 outline-none focus:border-[#3BC671] transition-all font-mono text-xs" />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Phone Number ID</label>
+                            <input value={metaPhoneNumberId} onChange={e => setMetaPhoneNumberId(e.target.value)} type="text" placeholder="123456789..." className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 outline-none focus:border-[#3BC671] transition-all font-mono text-xs" />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">WABA ID</label>
+                            <input value={metaWabaId} onChange={e => setMetaWabaId(e.target.value)} type="text" placeholder="987654321..." className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 outline-none focus:border-[#3BC671] transition-all font-mono text-xs" />
+                          </div>
+                        </div>
+
+                        <div className="p-4 bg-slate-900 rounded-2xl space-y-3">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL do Webhook (Copie para o Meta)</label>
+                          <div className="flex gap-2">
+                            <input readOnly value={typeof window !== 'undefined' ? `${window.location.origin}/api/v1/webhooks/whatsapp` : ''} className="flex-1 bg-white/5 border border-white/10 rounded-lg p-3 text-[10px] text-white font-mono outline-none" />
+                            <button onClick={() => navigator.clipboard.writeText(`${window.location.origin}/api/v1/webhooks/whatsapp`)} className="bg-white/10 hover:bg-white/20 px-3 rounded-lg text-white transition-all text-[10px] font-bold">COPIAR</button>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={handleSaveNativeConfig}
+                          disabled={isSavingNative || !metaAccessToken || !metaPhoneNumberId}
+                          className="w-full bg-[#3BC671] text-black font-bold text-xs py-4 rounded-xl hover:brightness-110 active:scale-[0.98] transition-all shadow-lg shadow-green-500/10"
+                        >
+                          {isSavingNative ? 'SALVANDO CONFIGURAÇÃO...' : 'SALVAR CONFIGURAÇÃO NATIVA'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+              </div>
+              <footer className="p-8 border-t border-slate-100 bg-white">
+                <button onClick={() => setIsWADrawerOpen(false)} className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold text-sm">Fechar</button>
               </footer>
             </div>
           </div>
@@ -742,6 +923,6 @@ export default function DashboardPage() {
           </div>
         )
       }
-    </div>
+    </div >
   );
 }
