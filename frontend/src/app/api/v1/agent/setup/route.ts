@@ -27,7 +27,7 @@ export async function POST(req: Request) {
                     first_message: setup.first_message,
                     language: setup.language || "pt"
                 },
-                tts_config: {
+                tts: {
                     model_id: "eleven_flash_v2_5",
                     voice_id: setup.voice_id
                 }
