@@ -39,8 +39,16 @@ export default function DashboardPage() {
   const [entities, setEntities] = useState([
     { id: 1, name: 'customer_name', description: 'Nome completo do cliente' },
     { id: 2, name: 'customer_email', description: 'E-mail de contato' },
-    { id: 3, name: 'customer_phone', description: 'Telefone ou WhatsApp' }
+    { id: 3, name: 'customer_phone', description: 'Telefone ou WhatsApp' },
+    { id: 4, name: 'customer_region', description: 'Cidade, estado ou região do cliente' }
   ]);
+
+  const SUGGESTED_ENTITIES = [
+    { name: 'orcamento_estimado', description: 'Valor que o cliente pretende investir' },
+    { name: 'produto_interesse', description: 'Qual produto ou serviço específico o cliente busca' },
+    { name: 'motivo_contato', description: 'Principal dor ou necessidade do cliente' },
+    { name: 'origem_lead', description: 'Por onde o cliente conheceu a empresa (Instagram, Google, indicação)' }
+  ];
   const [knowledgeDocuments, setKnowledgeDocuments] = useState<any[]>([]);
   const [uploadingFile, setUploadingFile] = useState(false);
 
@@ -793,9 +801,24 @@ export default function DashboardPage() {
                       <button onClick={addEntity} className="text-[10px] font-bold text-[#3BC671] hover:underline">+ ADICIONAR CAMPO</button>
                     </div>
 
-                    <p className="text-[11px] text-slate-500 font-medium bg-slate-50 p-3 rounded-lg border-l-2 border-slate-200">
-                      Defina quais informações o robô deve extrair durante a conversa para gerar relatórios estruturados.
-                    </p>
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Sugestões de Coleta (Insights)</label>
+                      <div className="flex flex-wrap gap-2">
+                        {SUGGESTED_ENTITIES.map((s, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => {
+                              if (!entities.find(e => e.name === s.name)) {
+                                setEntities(prev => [...prev, { id: Date.now() + idx, ...s }]);
+                              }
+                            }}
+                            className="bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg text-[10px] font-bold text-slate-600 hover:border-[#3BC671] hover:text-[#3BC671] transition-all"
+                          >
+                            + {s.name.replace('_', ' ')}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
                     <div className="space-y-3">
                       {entities.map(e => (
