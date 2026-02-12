@@ -30,7 +30,8 @@ export async function POST(req: Request) {
                         3. COLETE DADOS DO CLIENTE DE FORMA SUTIL DURANTE A CONVERSA PARA MÉTRICAS, MAS PRIORIZE A VENDA.
                         4. MEMORIZE O CONTEXTO DA CONVERSA E USE-O PARA PERSONALIZAR O ATENDIMENTO.
                         
-                        ${setup.prompt}`
+                        ${setup.prompt}`,
+                        llm: "gemini-1.5-flash"
                     },
                     first_message: setup.first_message,
                     language: (setup.language || "pt").substring(0, 2)

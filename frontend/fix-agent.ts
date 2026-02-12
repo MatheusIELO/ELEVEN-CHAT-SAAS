@@ -34,10 +34,11 @@ async function fixAgent() {
         conversation_config: {
             agent: {
                 prompt: {
-                    prompt: `Seu nome é teste. Você atua na área de vendas. ${hiddenSystemPrompt}`,
-                    llm: "gemini-1.5-flash",
-                    temperature: 0.7
-                }
+                    prompt: "Você é o Eleven Chat, um assistente virtual prestativo e educado. Você deve ser conciso e amigável.",
+                    llm: "gemini-1.5-flash"
+                },
+                first_message: " ", // Just a space
+                language: "pt"
             },
             tts: {
                 model_id: "eleven_flash_v2_5"
