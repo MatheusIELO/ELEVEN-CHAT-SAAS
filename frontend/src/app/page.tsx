@@ -155,6 +155,7 @@ export default function DashboardPage() {
     setPrompt(agent.prompt || '');
     setFirstMessage(agent.first_message || '');
     setLanguage(agent.language || 'pt');
+    setVoiceId(agent.voice_id || '21m00Tcm4TlvDq8ikWAM');
     setEntities(agent.entities || [
       { id: 1, name: 'customer_name', description: 'Nome completo do cliente' },
       { id: 2, name: 'customer_email', description: 'E-mail de contato' },
@@ -395,7 +396,7 @@ export default function DashboardPage() {
         <nav className="flex-1 px-4 space-y-1">
           {[
             { id: 'dash', label: 'Painel Geral', icon: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z' },
-            { id: 'agents', label: 'Agentes de Voz', icon: 'M12 2a10 10 0 0 1 10 10c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2z' },
+            { id: 'agents', label: 'Meus Agentes', icon: 'M12 2a10 10 0 0 1 10 10c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2z' },
             { id: 'logs', label: 'Histórico e Leads', icon: 'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z' },
           ].map(item => (
             <button

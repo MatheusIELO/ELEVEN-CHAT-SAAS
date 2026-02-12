@@ -23,6 +23,10 @@ export async function POST(req: Request) {
         });
     } catch (error: any) {
         console.error('Chat Error:', error);
-        return NextResponse.json({ error: error.message || 'Error processing message' }, { status: 500 });
+        return NextResponse.json({
+            error: error.message || 'Error processing message',
+            details: error.toString(),
+            stack: error.stack
+        }, { status: 500 });
     }
 }
