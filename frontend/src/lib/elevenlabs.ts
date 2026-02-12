@@ -69,7 +69,13 @@ export async function getElevenLabsAgentResponse(
                     let contextualizedMessage = message;
                     if (history.length > 0) {
                         const historyText = history.map(m => `${m.sender === 'user' ? 'Usuário' : 'Bot'}: ${m.text}`).join('\n');
-                        contextualizedMessage = `HISTÓRICO RECENTE:\n${historyText}\n\nCLIENTE AGORA DIZ: ${message}\n\n(Lembre-se: não repita saudações se já conversamos. Responda apenas à última mensagem do cliente de forma natural.)`;
+                        contextualizedMessage = `### CONTEXTO DE CONTINUIDADE ###\n` +
+                            `HISTÓRICO RECENTE:\n${historyText}\n\n` +
+                            `### INSTRUÇÃO OBRIGATÓRIA PARA ESTA RESPOSTA ###\n` +
+                            `O cliente disse agora: "${message}"\n` +
+                            `1. IGNORE SAUDAÇÕES: Não diga "Olá", "Oi", "Tudo bem", "E aí" ou similares. Vá direto à resposta.\n` +
+                            `2. ZERO GÍRIAS: Seja cordial e educado. Nunca use gírias.\n` +
+                            `3. FOCO: Responda apenas à pergunta ou comentário atual do cliente de forma natural.`;
                     }
 
                     ws.send(JSON.stringify({
