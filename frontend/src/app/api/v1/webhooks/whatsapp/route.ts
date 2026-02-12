@@ -92,44 +92,39 @@ export async function POST(req: Request) {
                 } else if (messageType === 'audio' && audioId) {
                     console.log(`[Webhook] Audio from ${from} (ID: ${audioId})`);
 
-                    // TODO: Transcribe Audio (OGG -> Text)
-                    // Currently skipping transcription due to infrastructure limits (ffmpeg required).
-                    // For now, valid behavior is to inform user we can't hear them yet, OR respond to a "phantom" query if we want to test Audio Output.
+                    // 1. Increment Audio Counter in Firestore
+                    const chatRef = db.collection('agents').doc(agentsSnapshot.docs[0].id)
+                        .collection('chats').doc(from);
 
-                    // Fallback: Inform user (in Text)
-                    const { sendMetaMessage } = await import('@/lib/meta');
-                    await sendMetaMessage(
-                        from,
-                        "🔊 Recebi seu áudio! No momento, meu sistema de audição está sendo calibrado. Por favor, envie texto por enquanto.",
-                        businessPhoneNumberId,
-                        whatsappConfig.access_token
-                    );
+                    const chatDoc = await chatRef.get();
+                    let audioCount = 1;
+                    if (chatDoc.exists) {
+                        audioCount = (chatDoc.data()?.audio_count || 0) + 1;
+                    }
+                    await chatRef.set({ audio_count: audioCount }, { merge: true });
 
-                    /* 
-                    // FUTURE IMPLEMENTATION: Text -> Speech -> WhatsApp Audio
-                    if (aiResponseText) {
-                        const { generateSpeech } = await import('@/lib/elevenlabs');
-                        const mp3Buffer = await generateSpeech(
-                            aiResponseText,
-                            agentData.conversation_config?.tts_config?.voice_id || "21m00Tcm4TlvDq8ikWAM",
-                            process.env.ELEVEN_API_KEY || ''
-                        );
-                        
-                        const { uploadMetaMedia, sendMetaAudio } = await import('@/lib/meta');
-                        const mediaId = await uploadMetaMedia(
-                            businessPhoneNumberId,
-                            whatsappConfig.access_token,
-                            mp3Buffer
-                        );
-                        
-                        await sendMetaAudio(
+                    // 2. Check if we should respond with Audio (Every 2nd audio: 2, 4, 6...)
+                    const shouldRespondAudio = (audioCount % 2 === 0);
+
+                    if (shouldRespondAudio) {
+                        // Fallback for now (No Transcription):
+                        const { sendMetaMessage } = await import('@/lib/meta');
+                        await sendMetaMessage(
                             from,
+                            "🔊 (Simulação) Recebi seu áudio! Responderia com ÁUDIO agora (Ciclo: 2/2). Mas preciso do sistema de transcrição operante.",
                             businessPhoneNumberId,
-                            whatsappConfig.access_token,
-                            mediaId
+                            whatsappConfig.access_token
+                        );
+                    } else {
+                        // Text Response forced
+                        const { sendMetaMessage } = await import('@/lib/meta');
+                        await sendMetaMessage(
+                            from,
+                            "🔊 Recebi seu áudio! Responderei em TEXTO por enquanto (Ciclo: 1/2).",
+                            businessPhoneNumberId,
+                            whatsappConfig.access_token
                         );
                     }
-                    */
                 }
 
                 console.log(`[Webhook] Processed message from ${from}`);
