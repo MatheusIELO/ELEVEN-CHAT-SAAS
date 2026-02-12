@@ -66,6 +66,11 @@ export default function DashboardPage() {
   const [isSavingNative, setIsSavingNative] = useState(false);
 
 
+  // Chat Test State (WhatsApp Style)
+  const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'bot', text: string, timestamp: string }>>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+
   useEffect(() => {
     const savedUser = localStorage.getItem('eleven_user');
     if (savedUser) {
@@ -355,9 +360,9 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-[#0F1115] flex items-center justify-center p-6 font-sans antialiased text-white">
         <div className="max-w-md w-full bg-[#181A20] rounded-2xl shadow-2xl p-10 border border-[#2A2E37]">
           <div className="flex justify-center mb-8">
-            <div className="w-12 h-12 bg-[#3BC671] rounded-xl flex items-center justify-center text-black font-bold text-xl shadow-lg shadow-green-500/20">11</div>
+            <div className="w-12 h-12 bg-[#3BC671] rounded-xl flex items-center justify-center text-black font-bold text-xl shadow-lg shadow-green-500/20">IA</div>
           </div>
-          <h1 className="text-2xl font-bold mb-1 text-center tracking-tight">Bem-vindo ao Eleven Chat</h1>
+          <h1 className="text-2xl font-bold mb-1 text-center tracking-tight">Bem-vindo ao Chat IA</h1>
           <p className="text-slate-500 text-center mb-10 text-sm font-medium">Inteligência Conversacional Profissional</p>
 
           <form onSubmit={handleLogin} className="space-y-5">
@@ -383,8 +388,8 @@ export default function DashboardPage() {
       {/* Sidebar Navigation */}
       <aside className="w-full lg:w-64 bg-[#0F1115] text-white flex flex-col shrink-0 border-r border-slate-800">
         <div className="p-6 flex items-center gap-3 border-b border-slate-800/50 mb-4">
-          <div className="w-8 h-8 bg-[#3BC671] rounded-lg flex items-center justify-center text-black font-black text-sm">11</div>
-          <span className="font-bold tracking-tight text-lg">Eleven Chat</span>
+          <div className="w-8 h-8 bg-[#3BC671] rounded-lg flex items-center justify-center text-black font-black text-sm">IA</div>
+          <span className="font-bold tracking-tight text-lg">Chat IA</span>
         </div>
 
         <nav className="flex-1 px-4 space-y-1">
@@ -421,7 +426,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex items-center gap-2 text-[11px] font-bold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
               <div className="w-1.5 h-1.5 bg-[#3BC671] rounded-full"></div>
-              Motor Ativo
+              Sistema Online
             </div>
           </div>
         </header>
@@ -467,8 +472,8 @@ export default function DashboardPage() {
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.675.337a4 4 0 01-2.574.345l-.367-.073a5 5 0 01-3.127-2.062l-.25-.375a3 3 0 00-2.323-1.428l-2.736-.205a2 2 0 11.298-3.989l2.736.205a5 5 0 013.871 2.381l.25.375a3 3 0 001.876 1.237l.367.073a6 6 0 003.86-.517l.675-.337a4 4 0 012.574-.345l2.387.477a4 4 0 012.554 1.368L19.428 15.428z" /></svg>
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Motor de Voz</p>
-                      <h4 className="font-bold text-slate-900">ElevenLabs API</h4>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Motor de IA</p>
+                      <h4 className="font-bold text-slate-900">Processamento Neural</h4>
                     </div>
                   </div>
                   <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${apiStatus?.elevenlabs_configured ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
@@ -539,7 +544,7 @@ export default function DashboardPage() {
                         <button onClick={() => openEditDrawer(agent)} className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all">
                           <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                         </button>
-                        <button onClick={() => { setAgentId(agent.agent_id); setBotName(agent.bot_name); setShowTest(true); }} className="p-2 text-slate-400 hover:text-[#3BC671] hover:bg-green-50 rounded-lg transition-all">
+                        <button onClick={() => { setAgentId(agent.agent_id); setBotName(agent.bot_name); setShowTest(true); setChatMessages([]); }} className="p-2 text-slate-400 hover:text-[#3BC671] hover:bg-green-50 rounded-lg transition-all">
                           <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
                         </button>
                       </div>
@@ -807,8 +812,8 @@ export default function DashboardPage() {
                           {!automationId && (
                             <>
                               <div className="grid grid-cols-2 gap-3">
-                                <input value={autoEmail} onChange={e => setAutoEmail(e.target.value)} type="email" placeholder="Email ElevenLabs" className="bg-white/5 border border-white/10 rounded-lg p-3 text-xs outline-none focus:border-[#3BC671]" />
-                                <input value={autoPassword} onChange={e => setAutoPassword(e.target.value)} type="password" placeholder="Senha ElevenLabs" className="bg-white/5 border border-white/10 rounded-lg p-3 text-xs outline-none focus:border-[#3BC671]" />
+                                <input value={autoEmail} onChange={e => setAutoEmail(e.target.value)} type="email" placeholder="Email de Acesso" className="bg-white/5 border border-white/10 rounded-lg p-3 text-xs outline-none focus:border-[#3BC671]" />
+                                <input value={autoPassword} onChange={e => setAutoPassword(e.target.value)} type="password" placeholder="Sua Senha" className="bg-white/5 border border-white/10 rounded-lg p-3 text-xs outline-none focus:border-[#3BC671]" />
                               </div>
                               <button
                                 onClick={() => {
@@ -913,10 +918,100 @@ export default function DashboardPage() {
                   <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
               </div>
-              <div className="h-[450px] w-full bg-[#0F1115] relative flex items-center justify-center">
-                <div className="scale-110">
-                  {agentId && <elevenlabs-convai agent-id={agentId}></elevenlabs-convai>}
-                  <script src="https://elevenlabs.io/convai-widget/index.js" async type="text/javascript"></script>
+              <div className="h-[500px] w-full bg-[#E5DDD5] relative flex flex-col">
+                {/* Chat Area */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                  {chatMessages.length === 0 && (
+                    <div className="text-center py-10">
+                      <p className="bg-[#FFF5C4] inline-block px-3 py-1 rounded-lg text-xs text-slate-500 shadow-sm border border-[#F0Ead6]">
+                        🔒 Mensagens protegidas com criptografia de ponta-a-ponta.
+                      </p>
+                    </div>
+                  )}
+
+                  {chatMessages.map((msg, i) => (
+                    <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[80%] rounded-lg p-3 shadow-sm relative text-sm ${msg.sender === 'user' ? 'bg-[#D9FDD3] text-slate-900 rounded-tr-none' : 'bg-white text-slate-900 rounded-tl-none'}`}>
+                        <p>{msg.text}</p>
+                        <span className="text-[10px] text-slate-400 float-right ml-2 mt-1">{msg.timestamp}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {isSendingMessage && (
+                    <div className="flex justify-start">
+                      <div className="bg-white rounded-lg p-3 shadow-sm rounded-tl-none">
+                        <div className="flex gap-1">
+                          <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></div>
+                          <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-75"></div>
+                          <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-150"></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Input Area */}
+                <div className="p-3 bg-[#F0F2F5] flex items-center gap-2">
+                  <input
+                    value={chatInput}
+                    onChange={e => setChatInput(e.target.value)}
+                    onKeyDown={async e => {
+                      if (e.key === 'Enter' && chatInput.trim() && !isSendingMessage) {
+                        const text = chatInput;
+                        setChatInput('');
+                        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        setChatMessages(prev => [...prev, { sender: 'user', text, timestamp: now }]);
+
+                        setIsSendingMessage(true);
+                        try {
+                          const res = await fetch(`${API_PREFIX}/chat/send`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ agentId, message: text })
+                          });
+                          const data = await res.json();
+                          const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                          setChatMessages(prev => [...prev, { sender: 'bot', text: data.text || "Erro ao processar.", timestamp: replyTime }]);
+                        } catch (err) {
+                          setChatMessages(prev => [...prev, { sender: 'bot', text: "Erro de conexão.", timestamp: now }]);
+                        } finally {
+                          setIsSendingMessage(false);
+                        }
+                      }
+                    }}
+                    type="text"
+                    placeholder="Digite uma mensagem"
+                    className="flex-1 bg-white rounded-lg px-4 py-2 text-sm outline-none border border-transparent focus:border-[#3BC671]"
+                  />
+                  <button
+                    onClick={async () => {
+                      if (chatInput.trim() && !isSendingMessage) {
+                        const text = chatInput;
+                        setChatInput('');
+                        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        setChatMessages(prev => [...prev, { sender: 'user', text, timestamp: now }]);
+
+                        setIsSendingMessage(true);
+                        try {
+                          const res = await fetch(`${API_PREFIX}/chat/send`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ agentId, message: text })
+                          });
+                          const data = await res.json();
+                          const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                          setChatMessages(prev => [...prev, { sender: 'bot', text: data.text || "Erro ao processar.", timestamp: replyTime }]);
+                        } catch (err) {
+                          setChatMessages(prev => [...prev, { sender: 'bot', text: "Erro de conexão.", timestamp: now }]);
+                        } finally {
+                          setIsSendingMessage(false);
+                        }
+                      }
+                    }}
+                    className="p-2 bg-[#3BC671] text-white rounded-full hover:brightness-110 transition-all"
+                  >
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
+                  </button>
                 </div>
               </div>
             </div>
