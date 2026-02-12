@@ -71,44 +71,57 @@ export async function getElevenLabsAgentResponse(
         let fullResponse = "";
         const audioChunks: string[] = [];
         let isDone = false;
+        let hasSentInput = false;
+        let isWaitingForGreetingEnd = false;
 
         const timeout = setTimeout(() => {
             if (!isDone) {
+                console.log("[ElevenLabs WS] Timeout Triggered. Full Response so far:", fullResponse);
                 ws.close();
-                reject(new Error("ElevenLabs timeout after 15s"));
+                if (fullResponse) {
+                    resolve({ text: fullResponse });
+                } else {
+                    reject(new Error("ElevenLabs timeout after 30s"));
+                }
             }
-        }, 15000);
+        }, 30000);
 
         ws.onopen = () => {
+            console.log("[ElevenLabs WS] Connection established.");
+
             const startMsg = {
                 type: "conversation_initiation_client_data",
                 conversation_config_override: {
                     agent: {
-                        prompt: { override: true },
-                        first_message: { override: true }
+                        first_message: ""
                     },
                     tts: {
-                        mode: replyMode === 'audio' ? 'default' : 'off' // Turn off TTS if text-only requested to save latency/cost? 
-                        // Actually, 'tts' config in init packet might not be supported this way.
-                        // But we can just ignore audio if text-only.
+                        mode: replyMode === 'audio' ? 'default' : 'off'
                     }
                 }
             };
             ws.send(JSON.stringify(startMsg));
+            console.log("[ElevenLabs WS] Initiation sent (with first_message disabled).");
 
-            const userMsg = {
-                type: "user_input",
-                input: message,
-            };
-            ws.send(JSON.stringify(userMsg));
+            // Still send input AFTER metadata just to be safe
         };
 
         ws.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data as string);
 
+                if (data.type === "conversation_initiation_metadata") {
+                    // If the agent has a first message, we should wait for it to end before sending our input.
+                    // Based on previous logs, we got an agent_response immediately.
+                    isWaitingForGreetingEnd = true;
+                }
+
                 if (data.type === "agent_response") {
-                    fullResponse += data.agent_response;
+                    if (data.agent_response) {
+                        fullResponse += data.agent_response;
+                    } else if (data.text) {
+                        fullResponse += data.text;
+                    }
                 }
 
                 if (data.type === "audio" && replyMode === 'audio') {
@@ -117,14 +130,44 @@ export async function getElevenLabsAgentResponse(
                     }
                 }
 
-                if (data.type === "agent_response_end" || data.type === "conversation_end") {
-                    isDone = true;
-                    clearTimeout(timeout);
-                    ws.close();
-                    resolve({
-                        text: fullResponse,
-                        audioChunks: replyMode === 'audio' ? audioChunks : undefined
-                    });
+                if (data.type === "agent_response_end") {
+                    if (!hasSentInput) {
+                        const userMsg = {
+                            type: "user_input",
+                            input: message,
+                        };
+                        ws.send(JSON.stringify(userMsg));
+                        hasSentInput = true;
+                    } else {
+                        // This was the response to our input
+                        isDone = true;
+                        clearTimeout(timeout);
+                        ws.close();
+                        resolve({
+                            text: fullResponse,
+                            audioChunks: replyMode === 'audio' ? audioChunks : undefined
+                        });
+                    }
+                }
+
+                if (data.type === "conversation_end") {
+                    console.log("[ElevenLabs WS] Conversation ended.");
+                    // This can happen if the agent ends the conversation without a final agent_response_end
+                    // or if it's the end of the initial greeting and no further input is expected from the agent.
+                    if (!isDone) { // Only resolve if not already resolved by agent_response_end
+                        isDone = true;
+                        clearTimeout(timeout);
+                        ws.close();
+                        resolve({
+                            text: fullResponse,
+                            audioChunks: replyMode === 'audio' ? audioChunks : undefined
+                        });
+                    }
+                }
+
+                if (data.type === "internal_error") {
+                    console.error("[ElevenLabs WS] Internal Error:", data.error);
+                    reject(new Error(`ElevenLabs Internal Error: ${data.error}`));
                 }
             } catch (err) {
                 console.error("WS Parse Error:", err);
