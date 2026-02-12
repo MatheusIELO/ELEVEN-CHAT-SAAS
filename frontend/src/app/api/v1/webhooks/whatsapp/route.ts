@@ -37,13 +37,15 @@ export async function POST(req: Request) {
 
         if (message) {
             const from = message.from; // Sender's phone number
-            const text = message.text?.body;
             const businessPhoneNumberId = value.metadata?.phone_number_id;
 
-            if (text && businessPhoneNumberId && db) {
-                console.log(`[Webhook] Message from ${from}: ${text} (ID: ${businessPhoneNumberId})`);
+            // Extract content based on message type
+            const messageType = message.type;
+            const textBody = message.text?.body;
+            const audioId = message.audio?.id;
 
-                // 1. Identify which ElevenLabs agent is associated with this businessPhoneNumberId
+            if (businessPhoneNumberId && db) {
+                // 1. Identify Agent
                 const agentsSnapshot = await db.collectionGroup('agents')
                     .where('whatsapp_config.phone_number_id', '==', businessPhoneNumberId)
                     .limit(1)
@@ -59,28 +61,78 @@ export async function POST(req: Request) {
                 const whatsappConfig = agentData.whatsapp_config;
 
                 if (!elevenAgentId || !whatsappConfig?.access_token) {
-                    console.error('[Webhook] Missing configuration for agent:', elevenAgentId);
+                    console.error('[Webhook] Missing config for agent:', elevenAgentId);
                     return NextResponse.json({ status: 'config_error' });
                 }
 
-                // 2. Forward message to ElevenLabs AI Agent
-                const { getElevenLabsAgentResponse } = await import('@/lib/elevenlabs');
-                const aiResponse = await getElevenLabsAgentResponse(
-                    elevenAgentId,
-                    text,
-                    process.env.ELEVEN_API_KEY || ''
-                );
+                // 2. Process Input
+                let aiResponseText = '';
 
-                // 3. Send response back via Meta Cloud API
-                const { sendMetaMessage } = await import('@/lib/meta');
-                await sendMetaMessage(
-                    from,
-                    aiResponse.text,
-                    businessPhoneNumberId,
-                    whatsappConfig.access_token
-                );
+                if (messageType === 'text' && textBody) {
+                    console.log(`[Webhook] Text from ${from}: ${textBody}`);
 
-                console.log(`[Webhook] Replied to ${from} using agent ${elevenAgentId}`);
+                    // ElevenLabs Agent (Text -> Text)
+                    const { getElevenLabsAgentResponse } = await import('@/lib/elevenlabs');
+                    const aiResponse = await getElevenLabsAgentResponse(
+                        elevenAgentId,
+                        textBody,
+                        process.env.ELEVEN_API_KEY || ''
+                    );
+                    aiResponseText = aiResponse.text;
+
+                    // Send Text Response
+                    const { sendMetaMessage } = await import('@/lib/meta');
+                    await sendMetaMessage(
+                        from,
+                        aiResponseText,
+                        businessPhoneNumberId,
+                        whatsappConfig.access_token
+                    );
+
+                } else if (messageType === 'audio' && audioId) {
+                    console.log(`[Webhook] Audio from ${from} (ID: ${audioId})`);
+
+                    // TODO: Transcribe Audio (OGG -> Text)
+                    // Currently skipping transcription due to infrastructure limits (ffmpeg required).
+                    // For now, valid behavior is to inform user we can't hear them yet, OR respond to a "phantom" query if we want to test Audio Output.
+
+                    // Fallback: Inform user (in Text)
+                    const { sendMetaMessage } = await import('@/lib/meta');
+                    await sendMetaMessage(
+                        from,
+                        "🔊 Recebi seu áudio! No momento, meu sistema de audição está sendo calibrado. Por favor, envie texto por enquanto.",
+                        businessPhoneNumberId,
+                        whatsappConfig.access_token
+                    );
+
+                    /* 
+                    // FUTURE IMPLEMENTATION: Text -> Speech -> WhatsApp Audio
+                    if (aiResponseText) {
+                        const { generateSpeech } = await import('@/lib/elevenlabs');
+                        const mp3Buffer = await generateSpeech(
+                            aiResponseText,
+                            agentData.conversation_config?.tts_config?.voice_id || "21m00Tcm4TlvDq8ikWAM",
+                            process.env.ELEVEN_API_KEY || ''
+                        );
+                        
+                        const { uploadMetaMedia, sendMetaAudio } = await import('@/lib/meta');
+                        const mediaId = await uploadMetaMedia(
+                            businessPhoneNumberId,
+                            whatsappConfig.access_token,
+                            mp3Buffer
+                        );
+                        
+                        await sendMetaAudio(
+                            from,
+                            businessPhoneNumberId,
+                            whatsappConfig.access_token,
+                            mediaId
+                        );
+                    }
+                    */
+                }
+
+                console.log(`[Webhook] Processed message from ${from}`);
             }
         }
 
