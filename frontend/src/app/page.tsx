@@ -18,6 +18,7 @@ export default function DashboardPage() {
   const [interactions, setInteractions] = useState<any[]>([]);
   const [agents, setAgents] = useState<any[]>([]);
   const [apiStatus, setApiStatus] = useState<any>(null);
+  const [metrics, setMetrics] = useState<any>(null);
 
   // Setup State
   const [editingAgentId, setEditingAgentId] = useState<string | null>(null);
@@ -98,18 +99,38 @@ export default function DashboardPage() {
     if (!userId) return;
     try {
       const headers = { 'user-id': userId };
-      const [statsRes, interRes, agentsRes, statusRes] = await Promise.all([
+      const [statsRes, interRes, agentsRes, statusRes, metricsRes] = await Promise.all([
         fetch(`${API_PREFIX}/stats`, { headers }),
         fetch(`${API_PREFIX}/interactions`, { headers }),
         fetch(`${API_PREFIX}/agents`, { headers }),
-        fetch(`${API_PREFIX}/`, { headers })
+        fetch(`${API_PREFIX}/`, { headers }),
+        fetch(`${API_PREFIX}/metrics`, { headers })
       ]);
       setStats(await statsRes.json());
       setInteractions(await interRes.json());
       setAgents(await agentsRes.json());
       setApiStatus(await statusRes.json());
+      if (metricsRes.ok) setMetrics(await metricsRes.json());
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
+    }
+  };
+
+  const handleDeleteAgent = async (id: string, agent_id: string) => {
+    if (!window.confirm("Tem certeza que deseja apagar este agente? Esta ação removerá o agente do ElevenLabs e não pode ser desfeita.")) return;
+    try {
+      const res = await fetch(`${API_PREFIX}/agent/delete?agentId=${agent_id}`, {
+        method: 'DELETE',
+        headers: { 'user-id': userId }
+      });
+      if (res.ok) {
+        setAgents(prev => prev.filter(a => a.agent_id !== agent_id));
+        alert("Agente removido com sucesso!");
+      } else {
+        alert("Erro ao remover agente.");
+      }
+    } catch (err) {
+      alert("Erro na conexão ao deletar.");
     }
   };
 
@@ -435,19 +456,81 @@ export default function DashboardPage() {
         <div className="p-8 max-w-6xl mx-auto">
           {activeTab === 'dash' && (
             <div className="space-y-8 animate-in fade-in duration-500">
-              {/* Compact Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[
-                  { label: 'Conversas', val: stats.total_conversations, sub: 'Total de interações processadas' },
-                  { label: 'Leads Detectados', val: stats.total_leads, sub: 'Potenciais clientes qualificados' },
-                  { label: 'Taxa de Conversão', val: stats.conversion_rate, sub: 'Benchmark de performance' }
-                ].map((s, i) => (
-                  <div key={i} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">{s.label}</p>
-                    <p className="text-3xl font-bold text-slate-900 mb-2">{s.val}</p>
-                    <p className="text-[11px] text-slate-500 font-medium">{s.sub}</p>
+              {/* 6 Grid Metrics Dashboard */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                    </div>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Conversas Totais</p>
                   </div>
-                ))}
+                  <p className="text-3xl font-black text-slate-900">{metrics?.total_conversations || 0}</p>
+                  <p className="text-[10px] text-slate-500 font-bold mt-2 uppercase">Interações processadas</p>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                    </div>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Taxa de Conversão</p>
+                  </div>
+                  <p className="text-3xl font-black text-slate-900">{metrics?.conversion_rate || 0}%</p>
+                  <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3">
+                    <div className="bg-[#3BC671] h-full rounded-full transition-all duration-1000" style={{ width: `${metrics?.conversion_rate || 0}%` }}></div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+                    </div>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Leads Capturados</p>
+                  </div>
+                  <p className="text-3xl font-black text-slate-900">{metrics?.active_leads || 0}</p>
+                  <p className="text-[10px] text-slate-500 font-bold mt-2 uppercase">Com dados de contato</p>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Duração Média</p>
+                  </div>
+                  <p className="text-3xl font-black text-slate-900">{metrics?.avg_duration || '0s'}</p>
+                  <p className="text-[10px] text-slate-500 font-bold mt-2 uppercase">Tempo de permanência</p>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    </div>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Principais Regiões</p>
+                  </div>
+                  <div className="space-y-2">
+                    {metrics?.top_regions?.length > 0 ? metrics.top_regions.slice(0, 2).map((r: any) => (
+                      <div key={r.name} className="flex justify-between items-center bg-slate-50 px-3 py-1.5 rounded-lg">
+                        <span className="text-xs font-bold text-slate-700">{r.name}</span>
+                        <span className="text-[10px] font-black text-slate-400">{r.count}</span>
+                      </div>
+                    )) : <p className="text-xs font-bold text-slate-400">Sem dados geográficos</p>}
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                    </div>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Agentes Ativos</p>
+                  </div>
+                  <p className="text-3xl font-black text-slate-900">{metrics?.total_agents || 0}</p>
+                  <p className="text-[10px] text-slate-500 font-bold mt-2 uppercase">Unidades em produção</p>
+                </div>
               </div>
 
               {/* Status Section */}
@@ -547,6 +630,9 @@ export default function DashboardPage() {
                         </button>
                         <button onClick={() => { setAgentId(agent.agent_id); setBotName(agent.bot_name); setShowTest(true); setChatMessages([]); }} className="p-2 text-slate-400 hover:text-[#3BC671] hover:bg-green-50 rounded-lg transition-all">
                           <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                        </button>
+                        <button onClick={() => handleDeleteAgent(agent.id, agent.agent_id)} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100">
+                          <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                       </div>
                     </div>
