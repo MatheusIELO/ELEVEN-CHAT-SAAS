@@ -33,7 +33,7 @@ export async function POST(req: Request) {
                         ${setup.prompt}`,
                         llm: "gemini-1.5-flash"
                     },
-                    first_message: setup.first_message,
+                    first_message: " ", // Forçar espaço para estabilidade
                     language: (setup.language || "pt").substring(0, 2)
                 },
                 tts: {
