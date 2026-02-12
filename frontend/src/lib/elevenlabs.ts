@@ -6,6 +6,11 @@ export interface AgentResponse {
     audioChunks?: string[];
 }
 
+export interface ChatMessage {
+    sender: 'user' | 'bot';
+    text: string;
+}
+
 export async function generateSpeech(text: string, voiceId: string, apiKey: string, modelId: string = "eleven_flash_v2_5"): Promise<Buffer> {
     const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
     const response = await fetch(url, {
@@ -22,7 +27,8 @@ export async function getElevenLabsAgentResponse(
     agentId: string,
     message: string,
     apiKey: string,
-    replyMode: 'text' | 'audio' = 'text'
+    replyMode: 'text' | 'audio' = 'text',
+    history: ChatMessage[] = []
 ): Promise<AgentResponse> {
     return new Promise((resolve, reject) => {
         const wsUrl = `wss://api.elevenlabs.io/v1/convai/conversation?agent_id=${agentId}`;
@@ -38,16 +44,30 @@ export async function getElevenLabsAgentResponse(
                 if (fullResponse) resolve({ text: fullResponse.trim() });
                 else reject(new Error("ElevenLabs Timeout"));
             }
-        }, 12000);
+        }, 15000);
+
+        // Prepend history to prompt to give the bot context in a stateless call
+        let contextPrompt = "";
+        if (history.length > 0) {
+            contextPrompt = "\n\nHISTÓRICO RECENTE DA CONVERSA (USE APENAS PARA CONTEXTO, NÃO REPITA):\n" +
+                history.map(m => `${m.sender === 'user' ? 'Usuário' : 'Você'}: ${m.text}`).join('\n');
+        }
 
         ws.on('open', () => {
-            ws.send(JSON.stringify({
+            const initiation = {
                 type: "conversation_initiation_client_data",
                 conversation_config_override: {
-                    agent: { first_message: " " },
+                    agent: {
+                        first_message: " ",
+                        // We can try to append context to the prompt dynamically
+                        prompt: {
+                            prompt: contextPrompt // This adds context to the existing system prompt
+                        }
+                    },
                     conversation: { text_only: true }
                 }
-            }));
+            };
+            ws.send(JSON.stringify(initiation));
         });
 
         ws.on('message', (data) => {
@@ -62,12 +82,10 @@ export async function getElevenLabsAgentResponse(
                     hasSentInput = true;
                 }
 
-                // Standard response handling
                 if (event.type === "agent_response" && hasSentInput) {
                     fullResponse += event.agent_response || event.text || "";
                 }
 
-                // text_only mode specific handling (observed in stream)
                 if (event.type === "agent_chat_response_part" && hasSentInput) {
                     const chunk = event.text_response_part?.text || "";
                     fullResponse += chunk;

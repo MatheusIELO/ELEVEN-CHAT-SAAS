@@ -968,7 +968,11 @@ export default function DashboardPage() {
                           const res = await fetch(`${API_PREFIX}/chat/send`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ agentId, message: text })
+                            body: JSON.stringify({
+                              agentId,
+                              message: text,
+                              history: chatMessages.slice(-10).map(m => ({ sender: m.sender, text: m.text }))
+                            })
                           });
                           const data = await res.json();
                           const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -997,7 +1001,11 @@ export default function DashboardPage() {
                           const res = await fetch(`${API_PREFIX}/chat/send`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ agentId, message: text })
+                            body: JSON.stringify({
+                              agentId,
+                              message: text,
+                              history: chatMessages.slice(-10).map(m => ({ sender: m.sender, text: m.text }))
+                            })
                           });
                           const data = await res.json();
                           const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
