@@ -46,23 +46,12 @@ export async function getElevenLabsAgentResponse(
             }
         }, 15000);
 
-        // Prepend history to prompt to give the bot context in a stateless call
-        let contextPrompt = "";
-        if (history.length > 0) {
-            contextPrompt = "\n\nHISTÓRICO RECENTE DA CONVERSA (USE APENAS PARA CONTEXTO, NÃO REPITA):\n" +
-                history.map(m => `${m.sender === 'user' ? 'Usuário' : 'Você'}: ${m.text}`).join('\n');
-        }
-
         ws.on('open', () => {
             const initiation = {
                 type: "conversation_initiation_client_data",
                 conversation_config_override: {
                     agent: {
-                        first_message: " ",
-                        // We can try to append context to the prompt dynamically
-                        prompt: {
-                            prompt: contextPrompt // This adds context to the existing system prompt
-                        }
+                        first_message: " "
                     },
                     conversation: { text_only: true }
                 }
@@ -75,9 +64,17 @@ export async function getElevenLabsAgentResponse(
                 const event = JSON.parse(data.toString());
 
                 if (event.type === "conversation_initiation_metadata") {
+                    // Combine history and current message into one cohesive input
+                    // This is a workaround since we can't seed history easily in WS
+                    let contextualizedMessage = message;
+                    if (history.length > 0) {
+                        const historyText = history.map(m => `${m.sender === 'user' ? 'Usuário' : 'Bot'}: ${m.text}`).join('\n');
+                        contextualizedMessage = `HISTÓRICO RECENTE:\n${historyText}\n\nCLIENTE AGORA DIZ: ${message}\n\n(Lembre-se: não repita saudações se já conversamos. Responda apenas à última mensagem do cliente de forma natural.)`;
+                    }
+
                     ws.send(JSON.stringify({
                         type: "user_message",
-                        text: message
+                        text: contextualizedMessage
                     }));
                     hasSentInput = true;
                 }
