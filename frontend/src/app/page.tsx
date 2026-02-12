@@ -360,9 +360,9 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-[#0F1115] flex items-center justify-center p-6 font-sans antialiased text-white">
         <div className="max-w-md w-full bg-[#181A20] rounded-2xl shadow-2xl p-10 border border-[#2A2E37]">
           <div className="flex justify-center mb-8">
-            <div className="w-12 h-12 bg-[#3BC671] rounded-xl flex items-center justify-center text-black font-bold text-xl shadow-lg shadow-green-500/20">IA</div>
+            <div className="w-12 h-12 bg-[#3BC671] rounded-xl flex items-center justify-center text-black font-bold text-xl shadow-lg shadow-green-500/20">11</div>
           </div>
-          <h1 className="text-2xl font-bold mb-1 text-center tracking-tight">Bem-vindo ao Chat IA</h1>
+          <h1 className="text-2xl font-bold mb-1 text-center tracking-tight">Bem-vindo ao Eleven Chat</h1>
           <p className="text-slate-500 text-center mb-10 text-sm font-medium">Inteligência Conversacional Profissional</p>
 
           <form onSubmit={handleLogin} className="space-y-5">
@@ -388,8 +388,8 @@ export default function DashboardPage() {
       {/* Sidebar Navigation */}
       <aside className="w-full lg:w-64 bg-[#0F1115] text-white flex flex-col shrink-0 border-r border-slate-800">
         <div className="p-6 flex items-center gap-3 border-b border-slate-800/50 mb-4">
-          <div className="w-8 h-8 bg-[#3BC671] rounded-lg flex items-center justify-center text-black font-black text-sm">IA</div>
-          <span className="font-bold tracking-tight text-lg">Chat IA</span>
+          <div className="w-8 h-8 bg-[#3BC671] rounded-lg flex items-center justify-center text-black font-black text-sm">11</div>
+          <span className="font-bold tracking-tight text-lg">Eleven Chat</span>
         </div>
 
         <nav className="flex-1 px-4 space-y-1">
