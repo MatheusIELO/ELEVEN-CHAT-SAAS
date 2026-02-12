@@ -2,6 +2,7 @@
  * ElevenLabs Conversational AI Bridge
  * Handles text-to-text communication with ElevenLabs Agents
  */
+import WebSocket from 'ws';
 
 export interface AgentResponse {
     text: string;
@@ -65,7 +66,7 @@ export async function getElevenLabsAgentResponse(
             headers: {
                 "xi-api-key": apiKey
             }
-        } as any);
+        });
 
         let fullResponse = "";
         const audioChunks: string[] = [];

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@mastra/core": "^1.2.0",
+    "@types/ws": "^8.18.1",
     "browser-use-sdk": "^2.0.14",
     "firebase": "^12.8.0",
     "firebase-admin": "^13.6.1",
@@ -19,6 +20,7 @@
     "openai": "^6.18.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "ws": "^8.19.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
