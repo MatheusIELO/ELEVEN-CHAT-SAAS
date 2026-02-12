@@ -22,10 +22,10 @@ export async function POST(req: Request) {
             conversation_config: {
                 agent: {
                     prompt: {
-                        prompt: `Seu nome é ${setup.bot_name}. Você atua na área de ${setup.area}. ${setup.prompt}`
+                        prompt: `Seu nome é ${setup.bot_name}. Você atua na área de ${setup.area}. ${(setup.language?.startsWith('pt') || !setup.language) ? "Responda sempre em Português do Brasil com sotaque brasileiro natural." : ""} ${setup.prompt}`
                     },
                     first_message: setup.first_message,
-                    language: setup.language || "pt"
+                    language: (setup.language || "pt").substring(0, 2)
                 },
                 tts: {
                     model_id: "eleven_flash_v2_5",
