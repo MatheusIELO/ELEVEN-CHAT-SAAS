@@ -31,6 +31,14 @@ export default function DashboardPage() {
   const [voiceId, setVoiceId] = useState('21m00Tcm4TlvDq8ikWAM');
   const [drawerStep, setDrawerStep] = useState(1);
 
+  // New "Superpowers" State
+  const [companyHistory, setCompanyHistory] = useState('');
+  const [productsCatalog, setProductsCatalog] = useState<Array<{ name: string, price: string, desc: string }>>([]);
+  const [paymentMethods, setPaymentMethods] = useState('');
+  const [deliveryCosts, setDeliveryCosts] = useState('');
+  const [openingHours, setOpeningHours] = useState('');
+  const [blockedSubjects, setBlockedSubjects] = useState<string[]>([]);
+
   const KNOWLEDGE_TEMPLATES = [
     { id: 'company', label: 'Dados da Empresa', icon: '🏢', content: 'Nome da Empresa: \nCNPJ: \nEndereço: \nHorário de Atendimento: \nServiços/Produtos: ' },
     { id: 'faq', label: 'FAQ', icon: '❓', content: 'Q: Como funciona? \nA: ... \n\nQ: Qual o prazo? \nA: ...' },
@@ -156,14 +164,21 @@ export default function DashboardPage() {
     setBotName('');
     setArea('');
     setPrompt('');
-    setFirstMessage('');
+    setFirstMessage('Olá! Como posso ajudar você hoje?');
     setLanguage('pt');
     setEntities([
       { id: 1, name: 'customer_name', description: 'Nome completo do cliente' },
       { id: 2, name: 'customer_email', description: 'E-mail de contato' },
-      { id: 3, name: 'customer_phone', description: 'Telefone ou WhatsApp' }
+      { id: 3, name: 'customer_phone', description: 'Telefone ou WhatsApp' },
+      { id: 4, name: 'customer_region', description: 'Cidade, estado ou região do cliente' }
     ]);
     setKnowledgeDocuments([]);
+    setCompanyHistory('');
+    setProductsCatalog([]);
+    setPaymentMethods('');
+    setDeliveryCosts('');
+    setOpeningHours('');
+    setBlockedSubjects([]);
     setAutomationId(null);
     setAutomationData(null);
     setOtpValue('');
@@ -181,15 +196,25 @@ export default function DashboardPage() {
     setAgentId(agent.agent_id || '');
     setBotName(agent.bot_name || '');
     setArea(agent.area || '');
-    setPrompt(agent.prompt || '');
+    setPrompt(agent.prompt_user_part || agent.prompt || ''); // Try to get the raw user part if we stored it
     setFirstMessage(agent.first_message || '');
     setLanguage(agent.language || 'pt');
     setVoiceId(agent.voice_id || '21m00Tcm4TlvDq8ikWAM');
     setEntities(agent.entities || [
       { id: 1, name: 'customer_name', description: 'Nome completo do cliente' },
       { id: 2, name: 'customer_email', description: 'E-mail de contato' },
-      { id: 3, name: 'customer_phone', description: 'Telefone ou WhatsApp' }
+      { id: 3, name: 'customer_phone', description: 'Telefone ou WhatsApp' },
+      { id: 4, name: 'customer_region', description: 'Cidade, estado ou região do cliente' }
     ]);
+
+    // Fill new superpowers
+    setCompanyHistory(agent.company_history || '');
+    setProductsCatalog(agent.products_catalog || []);
+    setPaymentMethods(agent.payment_methods || '');
+    setDeliveryCosts(agent.delivery_costs || '');
+    setOpeningHours(agent.opening_hours || '');
+    setBlockedSubjects(agent.blocked_subjects || []);
+
     setKnowledgeDocuments(agent.knowledge_base?.map((id: string) => ({ id, name: 'Doc: ' + id.slice(-6) })) || []);
     setAutomationId(null);
     setAutomationData(null);
@@ -326,20 +351,59 @@ export default function DashboardPage() {
 
     if (!botName || !area) return alert("Por favor, preencha os campos obrigatórios (Nome e Área).");
     setLoading(true);
+
     try {
       const endpoint = editingAgentId ? `${API_PREFIX}/agent/setup` : `${API_PREFIX}/agent/create`;
+
+      // Compile Superpowers into a Master Prompt
+      const productsPart = productsCatalog.length > 0
+        ? "\n\n### CATÁLOGO DE PRODUTOS E PREÇOS ###\n" + productsCatalog.filter(p => p.name).map(p => `- ${p.name}: R$ ${p.price} | Desc: ${p.desc}`).join('\n')
+        : "";
+
+      const safetyPart = blockedSubjects.length > 0
+        ? `\n\n### TÓPICOS PROIBIDOS (DIRETRIZ DE SEGURANÇA) ###\nNão fale, não opine e mude de assunto educadamente se o cliente mencionar: ${blockedSubjects.join(', ')}.`
+        : "";
+
+      const masterPrompt = `
+### SOBRE A EMPRESA E SUA HISTÓRIA ###
+${companyHistory || 'Não informado.'}
+
+### HORÁRIOS DE ATENDIMENTO ###
+${openingHours || 'Sempre disponível.'}
+
+### INFORMAÇÕES DE LOGÍSTICA (ENTREGA/ENVIO) ###
+${deliveryCosts || 'Consulte o atendente para valores de frete.'}
+
+### MÉTODOS DE PAGAMENTO E CHECKOUT ###
+${paymentMethods || 'Pergunte como o cliente prefere finalizar o pedido.'}
+${productsPart}
+${safetyPart}
+
+### PERSONALIDADE E OUTRAS INSTRUÇÕES ###
+${prompt}
+      `.trim();
+
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'user-id': userId },
         body: JSON.stringify({
           agent_id: agentId,
+          bot_id: editingAgentId, // Essential for Firestore update
           bot_name: botName,
           area,
-          prompt,
+          prompt: masterPrompt,
+          prompt_user_part: prompt, // Save raw instructions for editing
           first_message: firstMessage,
           language,
           voice_id: voiceId,
           entities: entities.filter((e: any) => e.name && e.description),
+          // Save Superpowers Raw for Editing
+          company_history: companyHistory,
+          products_catalog: productsCatalog,
+          payment_methods: paymentMethods,
+          delivery_costs: deliveryCosts,
+          opening_hours: openingHours,
+          blocked_subjects: blockedSubjects,
           knowledge_base: knowledgeDocuments.map(doc => doc.id)
         })
       });
@@ -721,7 +785,7 @@ export default function DashboardPage() {
                 <div>
                   <h2 className="text-xl font-bold text-slate-900">{editingAgentId ? 'Ajustes do Agente' : 'Novo Agente'}</h2>
                   <div className="flex gap-2 mt-1">
-                    {[1, 2, 3].map(s => (
+                    {[1, 2, 3, 4, 5].map(s => (
                       <div key={s} className={`h-1.5 w-8 rounded-full transition-all ${drawerStep >= s ? 'bg-[#3BC671]' : 'bg-slate-100'}`} />
                     ))}
                   </div>
@@ -734,7 +798,7 @@ export default function DashboardPage() {
               <div className="flex-1 overflow-y-auto p-8 space-y-8">
                 {drawerStep === 1 && (
                   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest border-l-4 border-[#3BC671] pl-3">Passo 1: Identidade</h3>
+                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest border-l-4 border-[#3BC671] pl-3">Passo 1: Identidade e História</h3>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nome do Ativo</label>
@@ -746,6 +810,10 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Sobre a Empresa e sua História</label>
+                      <textarea value={companyHistory} onChange={(e) => setCompanyHistory(e.target.value)} rows={4} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 outline-none focus:border-[#3BC671] transition-all font-medium text-sm text-slate-700 leading-relaxed resize-none" placeholder="Conte um pouco sobre como a empresa começou, valores e missão..." />
+                    </div>
+                    <div className="space-y-2">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Mensagem de Saudação</label>
                       <input value={firstMessage} onChange={(e) => setFirstMessage(e.target.value)} type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 outline-none focus:border-[#3BC671] transition-all font-semibold text-sm" placeholder="Primeira frase do robô..." />
                     </div>
@@ -754,7 +822,86 @@ export default function DashboardPage() {
 
                 {drawerStep === 2 && (
                   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest border-l-4 border-[#3BC671] pl-3">Passo 2: Conhecimento</h3>
+                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest border-l-4 border-[#3BC671] pl-3">Passo 2: Catálogo e Pagamentos</h3>
+
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Produtos / Serviços</label>
+                        <button onClick={() => setProductsCatalog([...productsCatalog, { name: '', price: '', desc: '' }])} className="text-[10px] font-bold text-[#3BC671] hover:underline">+ ADICIONAR ITEM</button>
+                      </div>
+                      <div className="space-y-3">
+                        {productsCatalog.map((p, idx) => (
+                          <div key={idx} className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-3 relative group">
+                            <button onClick={() => setProductsCatalog(productsCatalog.filter((_, i) => i !== idx))} className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 p-1">
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                            <div className="grid grid-cols-2 gap-3">
+                              <input value={p.name} onChange={e => {
+                                const newP = [...productsCatalog];
+                                newP[idx].name = e.target.value;
+                                setProductsCatalog(newP);
+                              }} placeholder="Nome do Produto" className="bg-white border border-slate-100 rounded-lg p-3 text-xs outline-none focus:border-[#3BC671]" />
+                              <input value={p.price} onChange={e => {
+                                const newP = [...productsCatalog];
+                                newP[idx].price = e.target.value;
+                                setProductsCatalog(newP);
+                              }} placeholder="Preço (Ex: 49.90)" className="bg-white border border-slate-100 rounded-lg p-3 text-xs outline-none focus:border-[#3BC671]" />
+                            </div>
+                            <input value={p.desc} onChange={e => {
+                              const newP = [...productsCatalog];
+                              newP[idx].desc = e.target.value;
+                              setProductsCatalog(newP);
+                            }} placeholder="Descrição curta do produto" className="w-full bg-white border border-slate-100 rounded-lg p-3 text-xs outline-none focus:border-[#3BC671]" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Links de Pagamento ou Chaves PIX</label>
+                      <textarea value={paymentMethods} onChange={(e) => setPaymentMethods(e.target.value)} rows={2} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 outline-none focus:border-[#3BC671] transition-all font-medium text-sm text-slate-700 resize-none" placeholder="Cole aqui seus links de checkout ou chaves PIX..." />
+                    </div>
+                  </div>
+                )}
+
+                {drawerStep === 3 && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest border-l-4 border-[#3BC671] pl-3">Passo 3: Logística e Regras</h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Custos de Entrega / Envio</label>
+                        <textarea value={deliveryCosts} onChange={(e) => setDeliveryCosts(e.target.value)} rows={3} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 outline-none focus:border-[#3BC671] transition-all font-medium text-sm text-slate-700 resize-none" placeholder="Ex: R$ 10 para SP, grátis acima de R$ 200..." />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Horários de Operação</label>
+                        <textarea value={openingHours} onChange={(e) => setOpeningHours(e.target.value)} rows={3} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 outline-none focus:border-[#3BC671] transition-all font-medium text-sm text-slate-700 resize-none" placeholder="Ex: Seg a Sex das 08h às 18h..." />
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 block">Tópicos Banidos (Segurança)</label>
+                      <div className="flex flex-wrap gap-2">
+                        {['Política', 'Religião', 'Conteúdo Adulto', 'Concorrentes'].map(topic => (
+                          <button
+                            key={topic}
+                            onClick={() => {
+                              if (blockedSubjects.includes(topic)) setBlockedSubjects(blockedSubjects.filter(t => t !== topic));
+                              else setBlockedSubjects([...blockedSubjects, topic]);
+                            }}
+                            className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase transition-all ${blockedSubjects.includes(topic) ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                          >
+                            {topic}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {drawerStep === 4 && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest border-l-4 border-[#3BC671] pl-3">Passo 4: Conhecimento Avançado</h3>
 
                     <div className="space-y-3">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Templates Rápidos</label>
@@ -769,13 +916,13 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Instruções e Personalidade</label>
-                      <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={6} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 outline-none focus:border-[#3BC671] transition-all font-medium text-sm text-slate-700 leading-relaxed resize-none" placeholder="Defina como o robô deve se comportar..." />
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Instruções e Personalidade Adicionais</label>
+                      <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={6} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 outline-none focus:border-[#3BC671] transition-all font-medium text-sm text-slate-700 leading-relaxed resize-none" placeholder="Outras informações específicas que a IA deve saber..." />
                     </div>
 
                     <div className="space-y-4">
                       <div className="flex justify-between items-center bg-slate-100 p-4 rounded-xl">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Documentos de Apoio</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Base em Documento (PDF/TXT)</span>
                         <label className="cursor-pointer text-[10px] font-bold text-white bg-slate-900 px-3 py-1 rounded-lg hover:bg-slate-800 transition-colors">
                           {uploadingFile ? 'Enviando...' : 'Subir Arquivo'}
                           <input type="file" className="hidden" onChange={handleFileUpload} accept=".pdf,.txt,.docx" disabled={uploadingFile} />
@@ -794,15 +941,15 @@ export default function DashboardPage() {
                   </div>
                 )}
 
-                {drawerStep === 3 && (
+                {drawerStep === 5 && (
                   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
                     <div className="flex justify-between items-center">
-                      <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest border-l-4 border-[#3BC671] pl-3">Passo 3: Inteligência</h3>
+                      <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest border-l-4 border-[#3BC671] pl-3">Passo 5: Captura de Insights</h3>
                       <button onClick={addEntity} className="text-[10px] font-bold text-[#3BC671] hover:underline">+ ADICIONAR CAMPO</button>
                     </div>
 
                     <div className="space-y-3">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Sugestões de Coleta (Insights)</label>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Sugestões de Coleta (Relatórios)</label>
                       <div className="flex flex-wrap gap-2">
                         {SUGGESTED_ENTITIES.map((s, idx) => (
                           <button
@@ -848,7 +995,7 @@ export default function DashboardPage() {
                     Voltar
                   </button>
                 )}
-                {drawerStep < 3 ? (
+                {drawerStep < 5 ? (
                   <button onClick={() => setDrawerStep(s => s + 1)} className="flex-1 bg-[#3BC671] text-black p-4 rounded-xl font-bold text-sm hover:brightness-110 shadow-lg shadow-green-500/10 transition-all active:scale-[0.98]">
                     Continuar
                   </button>
