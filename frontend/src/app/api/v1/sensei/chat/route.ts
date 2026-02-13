@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
-
 export async function POST(req: Request) {
     try {
+        const openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY || 'fake_key_for_build',
+        });
+
+        if (!process.env.OPENAI_API_KEY) {
+            return NextResponse.json({ text: "O Sensei está meditando. Por favor, configure a OPENAI_API_KEY no painel da Vercel para ativá-lo." });
+        }
         const { message, history } = await req.json();
 
         const systemPrompt = `
