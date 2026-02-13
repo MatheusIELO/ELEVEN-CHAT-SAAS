@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 const API_PREFIX = "/api/v1";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -89,6 +91,13 @@ export default function DashboardPage() {
   const [chatInput, setChatInput] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
 
+  // Sensei States
+  const [senseiInput, setSenseiInput] = useState('');
+  const [isSenseiLoading, setIsSenseiLoading] = useState(false);
+  const [senseiMessages, setSenseiMessages] = useState<Array<{ sender: 'sensei' | 'user', text: string }>>([
+    { sender: 'sensei', text: 'Olá! Eu sou o Sensei. Estou aqui para elevar o nível do seu negócio. O que vamos criar hoje?' }
+  ]);
+
   useEffect(() => {
     const savedUser = localStorage.getItem('eleven_user');
     if (savedUser) {
@@ -110,6 +119,7 @@ export default function DashboardPage() {
   const handleLogout = () => {
     localStorage.removeItem('eleven_user');
     setIsLoggedIn(false);
+    router.push('/login');
   };
 
   const fetchData = async () => {
@@ -246,6 +256,35 @@ export default function DashboardPage() {
     }
     return () => clearInterval(interval);
   }, [automationId]);
+
+  const handleSenseiConsult = async () => {
+    if (!senseiInput.trim() || isSenseiLoading) return;
+
+    const userMessage = senseiInput;
+    setSenseiInput('');
+    setSenseiMessages(prev => [...prev, { sender: 'user', text: userMessage }]);
+    setIsSenseiLoading(true);
+
+    try {
+      const res = await fetch(`${API_PREFIX}/sensei/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userMessage,
+          history: senseiMessages.map(m => ({ sender: m.sender, text: m.text }))
+        })
+      });
+
+      const data = await res.json();
+      if (data.text) {
+        setSenseiMessages(prev => [...prev, { sender: 'sensei', text: data.text }]);
+      }
+    } catch (err) {
+      setSenseiMessages(prev => [...prev, { sender: 'sensei', text: "O Sensei teve um lapso na conexão. Tente novamente, gafanhoto." }]);
+    } finally {
+      setIsSenseiLoading(false);
+    }
+  };
 
   const handleStartAutomation = async () => {
     if (!autoEmail || !autoPassword || !targetPhone) return alert("Preencha email, senha e telefone para automação.");
@@ -691,73 +730,130 @@ ${prompt}
 
 
           {activeTab === 'agents' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-              <div className="flex justify-between items-end">
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-1">Meus Agentes</h3>
-                  <p className="text-sm text-slate-500 font-medium">Gerencie e publique suas unidades conversacionais</p>
+            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700">
+
+              {/* Sensei Consultation Box */}
+              <div className="bg-slate-900 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden group border border-white/5">
+                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                  <svg className="w-48 h-48 text-[#3BC671]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" /></svg>
                 </div>
-                <button
-                  onClick={openNewAgentDrawer}
-                  className="bg-[#3BC671] text-black px-6 py-2.5 rounded-xl font-bold text-sm shadow-xl shadow-green-500/10 hover:shadow-green-500/20 active:scale-95 transition-all text-sm flex items-center gap-2"
-                >
-                  <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14" /></svg>
-                  Criar Agente
-                </button>
+
+                <div className="relative z-10 space-y-8">
+                  <div className="flex items-center gap-5">
+                    <div className="w-16 h-16 bg-[#3BC671] rounded-3xl flex items-center justify-center font-black text-black text-2xl italic shadow-2xl shadow-green-500/40 animate-pulse">11</div>
+                    <div>
+                      <h3 className="text-white font-black text-2xl tracking-tighter uppercase">SENSEI IA <span className="text-[#3BC671] text-[10px] ml-2 px-3 py-1 bg-[#3BC671]/10 border border-[#3BC671]/30 rounded-full font-black tracking-widest">STARTUP MENTOR</span></h3>
+                      <p className="text-slate-400 text-sm font-bold uppercase tracking-widest opacity-60">Consultoria de Alto Nível para sua Escala</p>
+                    </div>
+                  </div>
+
+                  {/* Sensei Message History */}
+                  <div className="space-y-4 max-h-[300px] overflow-y-auto pr-4 custom-scrollbar">
+                    {senseiMessages.map((m, i) => (
+                      <div key={i} className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-500`}>
+                        <div className={`max-w-[80%] px-6 py-4 rounded-3xl text-sm font-medium leading-relaxed ${m.sender === 'user' ? 'bg-[#3BC671] text-black rounded-tr-none' : 'bg-white/5 text-slate-200 border border-white/10 rounded-tl-none'}`}>
+                          {m.text.split('\n').map((line, j) => <p key={j} className={j > 0 ? 'mt-2' : ''}>{line}</p>)}
+                        </div>
+                      </div>
+                    ))}
+                    {isSenseiLoading && (
+                      <div className="flex justify-start">
+                        <div className="bg-white/5 border border-white/10 px-6 py-4 rounded-3xl rounded-tl-none flex gap-1">
+                          <div className="w-1.5 h-1.5 bg-[#3BC671] rounded-full animate-bounce"></div>
+                          <div className="w-1.5 h-1.5 bg-[#3BC671] rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                          <div className="w-1.5 h-1.5 bg-[#3BC671] rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-4">
+                    <div className="flex-1 relative">
+                      <input
+                        value={senseiInput}
+                        onChange={(e) => setSenseiInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSenseiConsult()}
+                        placeholder="Como posso escalar meu atendimento hoje, mestre?"
+                        className="w-full bg-white/10 border border-white/10 rounded-2xl px-6 py-5 text-white text-sm outline-none focus:border-[#3BC671] focus:ring-1 focus:ring-[#3BC671] transition-all placeholder:text-slate-500 font-bold"
+                      />
+                      <button
+                        onClick={handleSenseiConsult}
+                        disabled={isSenseiLoading}
+                        className="absolute right-3 top-2.5 bg-[#3BC671] text-black px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-green-500/20 disabled:opacity-50"
+                      >
+                        {isSenseiLoading ? 'PENSANDO...' : 'CONSULTAR SENSEI'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {agents.map(agent => (
-                  <div key={agent.id} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:border-slate-300 transition-all flex flex-col group">
-                    <div className="flex justify-between items-start mb-6">
-                      <div className="w-12 h-12 bg-slate-900 text-white rounded-xl flex items-center justify-center font-bold relative">
-                        {agent.bot_name?.[0]?.toUpperCase() || 'A'}
-                        {agent.agent_id && <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#3BC671] rounded-full border-2 border-white ring-2 ring-[#3BC671]/20"></div>}
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => openEditDrawer(agent)} className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all">
-                          <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                        </button>
-                        <button onClick={() => { setAgentId(agent.agent_id); setBotName(agent.bot_name); setShowTest(true); setChatMessages([]); }} className="p-2 text-slate-400 hover:text-[#3BC671] hover:bg-green-50 rounded-lg transition-all">
-                          <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-                        </button>
-                        <button onClick={() => handleDeleteAgent(agent.id, agent.agent_id)} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100">
-                          <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
-                      </div>
-                    </div>
-                    <h4 className="font-bold text-slate-900 text-lg mb-1">{agent.bot_name}</h4>
-                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-4 border-b border-slate-100 pb-4">{agent.area}</p>
-                    <div className="h-20 overflow-hidden relative">
-                      <p className="text-xs text-slate-500 font-medium leading-relaxed italic line-clamp-3">"{agent.prompt}"</p>
-                      <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-white to-transparent"></div>
-                    </div>
-
-                    <div className="flex-1 mt-2">
-                      <p className="text-xs text-slate-500 line-clamp-2">{agent.prompt || "Sem descrição disponível."}</p>
-                    </div>
-
-                    <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${agent.agent_id ? "bg-[#3BC671] animate-pulse" : "bg-slate-300"}`}></div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{agent.agent_id ? "Ativo" : "Em Espera"}</span>
-                      </div>
-                      <button
-                        onClick={() => openWADrawer(agent)}
-                        className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${agent.whatsapp_number || agent.whatsapp_config ? "bg-slate-100 text-slate-600 hover:bg-slate-200" : "bg-[#3BC671] text-black hover:brightness-110 shadow-lg shadow-green-500/10"}`}
-                      >
-                        {agent.whatsapp_number || agent.whatsapp_config ? "Ajustar WhatsApp" : "Conectar WhatsApp"}
-                      </button>
-
-                    </div>
+              {/* Agents Grid */}
+              <div className="space-y-6">
+                <div className="flex justify-between items-end px-2">
+                  <div>
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">Suas Unidades</h3>
+                    <p className="text-sm text-slate-500 font-bold uppercase tracking-widest mt-1">Status de Operação</p>
                   </div>
-                ))}
-                {agents.length === 0 && (
-                  <div className="col-span-full py-20 bg-slate-100/50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 group">
-                    <p className="font-bold text-sm tracking-tight mb-4">Nenhum agente ativo encontrado</p>
-                    <button onClick={openNewAgentDrawer} className="text-[#3BC671] font-bold text-xs uppercase tracking-widest border border-[#3BC671]/30 px-6 py-2 rounded-lg hover:bg-white transition-all">Configurar primeiro agente</button>
-                  </div>
-                )}
+                  <button
+                    onClick={openNewAgentDrawer}
+                    className="bg-white border border-slate-200 text-slate-900 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm"
+                  >
+                    + Novo Agente
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {agents.map((agent, idx) => {
+                    const colors = ['#3BC671', '#3b82f6', '#a855f7', '#f97316', '#ec4899', '#06b6d4'];
+                    const color = colors[idx % colors.length];
+
+                    return (
+                      <div key={agent.id} className="bg-white border border-slate-200 rounded-[2rem] p-8 shadow-sm hover:shadow-xl hover:translate-y-[-4px] transition-all flex flex-col items-center text-center group relative overflow-hidden">
+                        {/* Colorful Logo 11 */}
+                        <div
+                          className="w-16 h-16 rounded-[1.5rem] flex items-center justify-center font-black text-2xl italic mb-6 shadow-lg transition-transform group-hover:scale-110"
+                          style={{ backgroundColor: `${color}15`, color: color, border: `2px solid ${color}30` }}
+                        >
+                          11
+                        </div>
+
+                        <div className="space-y-2 mb-6">
+                          <h4 className="font-black text-slate-900 text-lg">{agent.bot_name}</h4>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{agent.area}</p>
+                        </div>
+
+                        <div className="w-full pt-6 border-t border-slate-50 flex justify-center gap-3">
+                          <button
+                            onClick={() => { setAgentId(agent.agent_id); setBotName(agent.bot_name); setShowTest(true); setChatMessages([]); }}
+                            className="bg-slate-900 text-white w-full py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all"
+                          >
+                            Telas de Teste
+                          </button>
+                          <button
+                            onClick={() => openEditDrawer(agent)}
+                            className="bg-slate-100 text-slate-500 p-3 rounded-xl hover:bg-slate-200 transition-all"
+                          >
+                            <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14" transform="rotate(45 12 12)" /></svg>
+                          </button>
+                        </div>
+
+                        {/* Status Indicator */}
+                        <div className="absolute top-6 right-6">
+                          <div className={`w-2 h-2 rounded-full ${agent.agent_id ? "bg-[#3BC671]" : "bg-slate-300"} shadow-lg shadow-green-500/20`}></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {agents.length === 0 && (
+                    <div className="col-span-full py-24 bg-slate-50 rounded-[2.5rem] border-4 border-dashed border-slate-100 flex flex-col items-center justify-center text-slate-300">
+                      <div className="w-20 h-20 bg-slate-200/50 rounded-3xl flex items-center justify-center font-black text-3xl italic mb-6">11</div>
+                      <p className="font-black text-sm uppercase tracking-widest mb-4">Inicie sua Startup de IA</p>
+                      <button onClick={openNewAgentDrawer} className="text-[#3BC671] font-black text-xs uppercase tracking-widest border-2 border-[#3BC671] px-8 py-3 rounded-2xl hover:bg-[#3BC671] hover:text-black transition-all">Criar Primeiro Agente</button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -1151,128 +1247,143 @@ ${prompt}
         )
       }
 
-      {/* Test Modal */}
-      {
-        showTest && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center p-6" onClick={() => setShowTest(false)}>
-            <div className="bg-[#181A20] w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden border border-[#2A2E37]" onClick={e => e.stopPropagation()}>
-              <div className="p-8 flex justify-between items-center border-b border-[#2A2E37]">
+      {/* Test Modal - Ultra Modern Glass */}
+      {showTest && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[60] flex items-center justify-center p-6 animate-in fade-in duration-500" onClick={() => setShowTest(false)}>
+          <div
+            className="bg-white rounded-[2.5rem] w-full max-w-2xl h-[80vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-500 border border-white/20"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-slate-900 text-[#3BC671] rounded-2xl flex items-center justify-center font-black text-xl italic">11</div>
                 <div>
-                  <h3 className="text-lg font-bold text-white tracking-tight">Ambiente de Teste: {botName}</h3>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Janela de inferência em tempo real</p>
+                  <h3 className="font-black text-slate-900 text-xl tracking-tight uppercase">Laboratório de Testes</h3>
+                  <p className="text-[10px] font-black text-[#3BC671] uppercase tracking-[0.2em] animate-pulse">Agente: {botName}</p>
                 </div>
-                <button onClick={() => setShowTest(false)} className="w-10 h-10 rounded-xl bg-[#23262F] border border-[#2A2E37] flex items-center justify-center text-slate-400 hover:text-white transition-all">
-                  <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
               </div>
-              <div className="h-[500px] w-full bg-[#E5DDD5] relative flex flex-col">
-                {/* Chat Area */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                  {chatMessages.length === 0 && (
-                    <div className="text-center py-10">
-                      <p className="bg-[#FFF5C4] inline-block px-3 py-1 rounded-lg text-xs text-slate-500 shadow-sm border border-[#F0Ead6]">
-                        🔒 Mensagens protegidas com criptografia de ponta-a-ponta.
-                      </p>
-                    </div>
-                  )}
+              <button
+                onClick={() => setShowTest(false)}
+                className="p-3 hover-bg-slate-50 rounded-2xl transition-all"
+              >
+                <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </button>
+            </div>
 
-                  {chatMessages.map((msg, i) => (
-                    <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[80%] rounded-lg p-3 shadow-sm relative text-sm ${msg.sender === 'user' ? 'bg-[#D9FDD3] text-slate-900 rounded-tr-none' : 'bg-white text-slate-900 rounded-tl-none'}`}>
-                        <p>{msg.text}</p>
-                        <span className="text-[10px] text-slate-400 float-right ml-2 mt-1">{msg.timestamp}</span>
-                      </div>
-                    </div>
-                  ))}
-                  {isSendingMessage && (
-                    <div className="flex justify-start">
-                      <div className="bg-white rounded-lg p-3 shadow-sm rounded-tl-none">
-                        <div className="flex gap-1">
-                          <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></div>
-                          <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-75"></div>
-                          <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-150"></div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+            {/* Chat Area */}
+            <div className="flex-1 overflow-y-auto p-8 bg-[#F8FAFC] space-y-6 custom-scrollbar">
+              {chatMessages.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-50">
+                  <div className="w-16 h-16 bg-slate-200 rounded-3xl flex items-center justify-center font-black text-2xl italic text-slate-400">11</div>
+                  <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Aguardando entrada para simulação</p>
                 </div>
+              ) : chatMessages.map((m, i) => (
+                <div key={i} className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}>
+                  <div className={`max-w-[85%] space-y-1`}>
+                    <div className={`px-6 py-4 rounded-3xl text-sm font-medium shadow-sm leading-relaxed ${m.sender === 'user' ? 'bg-[#3BC671] text-black rounded-tr-none' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none'}`}>
+                      {m.text}
+                    </div>
+                    <p className={`text-[9px] font-black text-slate-400 uppercase tracking-widest px-2 ${m.sender === 'user' ? 'text-right' : 'text-left'}`}>{m.timestamp}</p>
+                  </div>
+                </div>
+              ))}
+              {isSendingMessage && (
+                <div className="flex justify-start animate-in slide-in-from-bottom-2 duration-300">
+                  <div className="max-w-[85%] space-y-1">
+                    <div className="px-6 py-4 rounded-3xl text-sm font-medium shadow-sm leading-relaxed bg-white border border-slate-200 text-slate-700 rounded-tl-none">
+                      <div className="flex gap-1">
+                        <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></div>
+                        <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-75"></div>
+                        <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-150"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
-                {/* Input Area */}
-                <div className="p-3 bg-[#F0F2F5] flex items-center gap-2">
-                  <input
-                    value={chatInput}
-                    onChange={e => setChatInput(e.target.value)}
-                    onKeyDown={async e => {
-                      if (e.key === 'Enter' && chatInput.trim() && !isSendingMessage) {
-                        const text = chatInput;
-                        setChatInput('');
-                        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        setChatMessages(prev => [...prev, { sender: 'user', text, timestamp: now }]);
+            {/* Input Area */}
+            <div className="p-8 bg-white border-t border-slate-50 shrink-0">
+              <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-[1.5rem] p-2 pr-3 focus-within:border-[#3BC671] transition-all">
+                <input
+                  value={chatInput}
+                  onChange={e => setChatInput(e.target.value)}
+                  onKeyDown={async e => {
+                    if (e.key === 'Enter' && chatInput.trim() && !isSendingMessage) {
+                      const text = chatInput;
+                      setChatInput('');
+                      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      setChatMessages(prev => [...prev, { sender: 'user', text, timestamp: now }]);
 
-                        setIsSendingMessage(true);
-                        try {
-                          const res = await fetch(`${API_PREFIX}/chat/send`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              agentId,
-                              message: text,
-                              history: chatMessages.slice(-10).map(m => ({ sender: m.sender, text: m.text }))
-                            })
-                          });
-                          const data = await res.json();
-                          const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                          setChatMessages(prev => [...prev, { sender: 'bot', text: data.text || "Erro ao processar.", timestamp: replyTime }]);
-                        } catch (err) {
-                          setChatMessages(prev => [...prev, { sender: 'bot', text: "Erro de conexão.", timestamp: now }]);
-                        } finally {
-                          setIsSendingMessage(false);
-                        }
+                      setIsSendingMessage(true);
+                      try {
+                        const res = await fetch(`${API_PREFIX}/chat/send`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            agentId,
+                            message: text,
+                            history: chatMessages.slice(-10).map(m => ({ sender: m.sender, text: m.text }))
+                          })
+                        });
+                        const data = await res.json();
+                        const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        setChatMessages(prev => [...prev, { sender: 'bot', text: data.text || "Erro ao processar.", timestamp: replyTime }]);
+                      } catch (err) {
+                        setChatMessages(prev => [...prev, { sender: 'bot', text: "Erro de conexão.", timestamp: now }]);
+                      } finally {
+                        setIsSendingMessage(false);
                       }
-                    }}
-                    type="text"
-                    placeholder="Digite uma mensagem"
-                    className="flex-1 bg-white rounded-lg px-4 py-2 text-sm outline-none border border-transparent focus:border-[#3BC671]"
-                  />
-                  <button
-                    onClick={async () => {
-                      if (chatInput.trim() && !isSendingMessage) {
-                        const text = chatInput;
-                        setChatInput('');
-                        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        setChatMessages(prev => [...prev, { sender: 'user', text, timestamp: now }]);
+                    }
+                  }}
+                  type="text"
+                  placeholder="Envie um comando para teste de fogo..."
+                  className="flex-1 bg-transparent px-4 py-2 text-sm font-bold text-slate-700 outline-none placeholder:text-slate-400"
+                />
+                <button
+                  onClick={async () => {
+                    if (chatInput.trim() && !isSendingMessage) {
+                      const text = chatInput;
+                      setChatInput('');
+                      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      setChatMessages(prev => [...prev, { sender: 'user', text, timestamp: now }]);
 
-                        setIsSendingMessage(true);
-                        try {
-                          const res = await fetch(`${API_PREFIX}/chat/send`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              agentId,
-                              message: text,
-                              history: chatMessages.slice(-10).map(m => ({ sender: m.sender, text: m.text }))
-                            })
-                          });
-                          const data = await res.json();
-                          const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                          setChatMessages(prev => [...prev, { sender: 'bot', text: data.text || "Erro ao processar.", timestamp: replyTime }]);
-                        } catch (err) {
-                          setChatMessages(prev => [...prev, { sender: 'bot', text: "Erro de conexão.", timestamp: now }]);
-                        } finally {
-                          setIsSendingMessage(false);
-                        }
+                      setIsSendingMessage(true);
+                      try {
+                        const res = await fetch(`${API_PREFIX}/chat/send`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            agentId,
+                            message: text,
+                            history: chatMessages.slice(-10).map(m => ({ sender: m.sender, text: m.text }))
+                          })
+                        });
+                        const data = await res.json();
+                        const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        setChatMessages(prev => [...prev, { sender: 'bot', text: data.text || "Erro ao processar.", timestamp: replyTime }]);
+                      } catch (err) {
+                        setChatMessages(prev => [...prev, { sender: 'bot', text: "Erro de conexão.", timestamp: now }]);
+                      } finally {
+                        setIsSendingMessage(false);
                       }
-                    }}
-                    className="p-2 bg-[#3BC671] text-white rounded-full hover:brightness-110 transition-all"
-                  >
+                    }
+                  }}
+                  disabled={isSendingMessage}
+                  className="bg-[#3BC671] text-black w-10 h-10 rounded-xl flex items-center justify-center hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-green-500/10 disabled:opacity-50"
+                >
+                  {isSendingMessage ? (
+                    <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                  ) : (
                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
-                  </button>
-                </div>
+                  )}
+                </button>
               </div>
             </div>
           </div>
-        )
-      }
-    </div >
+        </div>
+      )}
+    </div>
   );
 }
