@@ -10,7 +10,8 @@ export default function DashboardPage() {
   const [password, setPassword] = useState('');
   const [userId, setUserId] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'dash' | 'agents' | 'logs'>('dash');
+  const [activeTab, setActiveTab] = useState<'dash' | 'agents' | 'settings'>('dash');
+  const [settingsSubTab, setSettingsSubTab] = useState<'profile' | 'billing'>('profile');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -490,7 +491,6 @@ ${prompt}
           {[
             { id: 'dash', label: 'Painel Geral', icon: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z' },
             { id: 'agents', label: 'Meus Agentes', icon: 'M12 2a10 10 0 0 1 10 10c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2z' },
-            { id: 'logs', label: 'Histórico e Leads', icon: 'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z' },
           ].map(item => (
             <button
               key={item.id}
@@ -503,8 +503,15 @@ ${prompt}
           ))}
         </nav>
 
-        <div className="p-4 border-t border-slate-800/50">
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold text-slate-400 hover:text-red-400 hover:bg-red-400/5 transition-colors">
+        <div className="px-4 py-4 space-y-1 border-t border-slate-800/50">
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-colors ${activeTab === 'settings' ? 'bg-[#3BC671]/10 text-[#3BC671]' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+          >
+            <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
+            Configurações
+          </button>
+          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold text-slate-500 hover:text-red-400 hover:bg-red-400/5 transition-colors">
             <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
             Sair
           </button>
@@ -515,7 +522,7 @@ ${prompt}
       <main className="flex-1 overflow-y-auto">
         <header className="h-16 flex items-center justify-between px-8 bg-white border-b border-slate-200 sticky top-0 z-10">
           <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest">
-            {activeTab === 'dash' ? 'Visão Geral' : activeTab === 'agents' ? 'IA Conversacional' : 'Insights'}
+            {activeTab === 'dash' ? 'Visão Geral' : activeTab === 'agents' ? 'IA Conversacional' : 'Configurações'}
           </h2>
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex items-center gap-2 text-[11px] font-bold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
@@ -528,149 +535,160 @@ ${prompt}
         <div className="p-8 max-w-6xl mx-auto">
           {activeTab === 'dash' && (
             <div className="space-y-8 animate-in fade-in duration-500">
-              {/* 6 Grid Metrics Dashboard */}
+              {/* Dashboard Hero Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
-                    </div>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Conversas Totais</p>
+
+                {/* 1. Volume de Conversas */}
+                <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm overflow-hidden relative group">
+                  <div className="absolute top-0 right-0 p-8 opacity-5">
+                    <svg className="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                   </div>
-                  <p className="text-3xl font-black text-slate-900">{metrics?.total_conversations || 0}</p>
-                  <p className="text-[10px] text-slate-500 font-bold mt-2 uppercase">Interações processadas</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Volume Total</p>
+                  <h3 className="text-5xl font-black text-slate-900 leading-none">{metrics?.total_conversations || 0}</h3>
+                  <p className="text-xs font-bold text-slate-500 mt-4 flex items-center gap-2">
+                    <span className="text-[#3BC671]">↑ 12%</span> vs semana passada
+                  </p>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-                    </div>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Taxa de Conversão</p>
+                {/* 2. Top Produtos Semanal (Bar Chart) */}
+                <div className="bg-[#0F1115] p-8 rounded-3xl shadow-xl lg:col-span-2">
+                  <div className="flex justify-between items-center mb-6">
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Top Produtos Interresse (Semanal)</p>
+                    <div className="px-2 py-1 bg-white/5 rounded text-[9px] font-bold text-slate-400">7 DIAS</div>
                   </div>
-                  <p className="text-3xl font-black text-slate-900">{metrics?.conversion_rate || 0}%</p>
-                  <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3">
-                    <div className="bg-[#3BC671] h-full rounded-full transition-all duration-1000" style={{ width: `${metrics?.conversion_rate || 0}%` }}></div>
-                  </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
-                    </div>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Leads Capturados</p>
-                  </div>
-                  <p className="text-3xl font-black text-slate-900">{metrics?.active_leads || 0}</p>
-                  <p className="text-[10px] text-slate-500 font-bold mt-2 uppercase">Com dados de contato</p>
-                </div>
-
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    </div>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Duração Média</p>
-                  </div>
-                  <p className="text-3xl font-black text-slate-900">{metrics?.avg_duration || '0s'}</p>
-                  <p className="text-[10px] text-slate-500 font-bold mt-2 uppercase">Tempo de permanência</p>
-                </div>
-
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                    </div>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Principais Regiões</p>
-                  </div>
-                  <div className="space-y-2">
-                    {metrics?.top_regions?.length > 0 ? metrics.top_regions.slice(0, 2).map((r: any) => (
-                      <div key={r.name} className="flex justify-between items-center bg-slate-50 px-3 py-1.5 rounded-lg">
-                        <span className="text-xs font-bold text-slate-700">{r.name}</span>
-                        <span className="text-[10px] font-black text-slate-400">{r.count}</span>
+                  <div className="space-y-4">
+                    {metrics?.weekly_products?.length > 0 ? metrics.weekly_products.map((p: any, idx: number) => (
+                      <div key={p.name} className="space-y-1">
+                        <div className="flex justify-between text-[11px] font-bold">
+                          <span className="text-white uppercase tracking-wider">{p.name}</span>
+                          <span className="text-[#3BC671]">{p.count} solicitações</span>
+                        </div>
+                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-[#3BC671] to-[#2da15a] rounded-full transition-all duration-1000"
+                            style={{ width: `${(p.count / metrics.weekly_products[0].count) * 100}%` }}
+                          />
+                        </div>
                       </div>
-                    )) : <p className="text-xs font-bold text-slate-400">Sem dados geográficos</p>}
+                    )) : <p className="text-xs text-slate-600 font-bold py-4">Aguardando dados de interesse...</p>}
                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                    </div>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Agentes Ativos</p>
+                {/* 3. Top Regiões Semanal (Bar Chart) */}
+                <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm lg:col-span-2">
+                  <div className="flex justify-between items-center mb-6">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Distribuição por Região</p>
                   </div>
-                  <p className="text-3xl font-black text-slate-900">{metrics?.total_agents || 0}</p>
-                  <p className="text-[10px] text-slate-500 font-bold mt-2 uppercase">Unidades em produção</p>
-                </div>
-              </div>
-
-              {/* Status Section */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${apiStatus?.firebase_connected ? 'bg-green-50 text-green-500' : 'bg-red-50 text-red-500'}`}>
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 7v10c0 2.21 4.477 4 10 4s10-1.79 10-4V7M4 7c0 2.21 4.477 4 10 4s10-1.79 10-4M4 7c0-2.21 4.477-4 10-4s10 1.79 10 4m0 5c0 2.21-4.477 4-10 4s-10-1.79-10-4" /></svg>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      {metrics?.weekly_regions?.length > 0 ? metrics.weekly_regions.map((r: any) => (
+                        <div key={r.name} className="flex items-center gap-3">
+                          <div className="w-2 h-2 rounded-full bg-[#3BC671]"></div>
+                          <span className="text-xs font-bold text-slate-700 flex-1">{r.name}</span>
+                          <span className="text-xs font-black text-slate-900">{r.count}</span>
+                        </div>
+                      )) : <p className="text-xs text-slate-400">Sem dados geográficos ainda.</p>}
                     </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Banco de Dados</p>
-                      <h4 className="font-bold text-slate-900">Google Firebase</h4>
-                    </div>
-                  </div>
-                  <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${apiStatus?.firebase_connected ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                    {apiStatus?.firebase_connected ? 'Conectado' : 'Erro'}
-                  </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${apiStatus?.elevenlabs_configured ? 'bg-green-50 text-green-500' : 'bg-red-50 text-red-500'}`}>
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.675.337a4 4 0 01-2.574.345l-.367-.073a5 5 0 01-3.127-2.062l-.25-.375a3 3 0 00-2.323-1.428l-2.736-.205a2 2 0 11.298-3.989l2.736.205a5 5 0 013.871 2.381l.25.375a3 3 0 001.876 1.237l.367.073a6 6 0 003.86-.517l.675-.337a4 4 0 012.574-.345l2.387.477a4 4 0 012.554 1.368L19.428 15.428z" /></svg>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Motor de IA</p>
-                      <h4 className="font-bold text-slate-900">Processamento Neural</h4>
-                    </div>
-                  </div>
-                  <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${apiStatus?.elevenlabs_configured ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                    {apiStatus?.elevenlabs_configured ? 'Ativo' : 'Pendente'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Interaction Breakdown */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden text-sm">
-                <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/30">
-                  <h3 className="font-bold text-slate-900">Fluxo em Tempo Real</h3>
-                  <button onClick={fetchData} className="text-slate-400 hover:text-slate-600">
-                    <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M4 4v5h.582M20 20v-5h-.581M18.46 6.54A9 9 0 0 1 20 12h-2M5.54 18.46A9 9 0 0 1 4 12h2" /></svg>
-                  </button>
-                </div>
-                <div className="divide-y divide-slate-100">
-                  {interactions.map(i => (
-                    <div key={i.conversation_id} className="p-6 hover:bg-slate-50 transition-colors">
-                      <div className="flex justify-between gap-4 mb-3">
-                        <div className="bg-slate-900 text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded leading-none flex items-center h-fit">ID: {i.conversation_id.slice(-6)}</div>
-                        <span className={`text-[10px] font-bold uppercase tracking-wider ${i.sentiment === 'positive' ? 'text-[#3BC671]' : 'text-slate-400'}`}>{i.sentiment || 'Neutro'}</span>
-                      </div>
-                      <p className="text-slate-600 font-medium leading-relaxed mb-4">{i.summary}</p>
-                      <div className="flex flex-wrap gap-2">
-                        {i.extracted_data && Object.entries(i.extracted_data).map(([k, v]: [string, any]) => (
-                          <div key={k} className="bg-slate-100 border border-slate-200 rounded-lg px-3 py-1.5 flex items-center gap-3">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase">{k.replace('_', ' ')}</span>
-                            <span className="text-[11px] font-bold text-slate-700">{v}</span>
+                    <div className="flex items-end justify-center">
+                      <div className="flex gap-2 items-end h-24">
+                        {[40, 70, 45, 90, 60].map((h, i) => (
+                          <div key={i} className="w-3 bg-slate-100 rounded-t-lg relative">
+                            <div className="absolute bottom-0 w-full bg-[#3BC671] rounded-t-lg transition-all duration-1000" style={{ height: `${h}%` }}></div>
                           </div>
                         ))}
                       </div>
                     </div>
-                  ))}
-                  {interactions.length === 0 && (
-                    <div className="p-12 text-center text-slate-400 font-semibold italic">Nenhum dado detectado para este usuário.</div>
-                  )}
+                  </div>
                 </div>
+
+                {/* 4. Taxa de Conversão */}
+                <div className="bg-[#3BC671] p-8 rounded-3xl shadow-lg shadow-green-500/10 flex flex-col justify-between">
+                  <p className="text-[10px] font-black text-black/50 uppercase tracking-[0.2em]">Taxa de Conversão</p>
+                  <div>
+                    <h3 className="text-5xl font-black text-black">{metrics?.conversion_rate || 0}%</h3>
+                    <p className="text-xs font-bold text-black/60 mt-2">Leads qualificados vs Total</p>
+                  </div>
+                </div>
+
+                {/* 5. Leads Capturados */}
+                <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Base de Leads</p>
+                  <h3 className="text-4xl font-black text-slate-900">{metrics?.active_leads || 0}</h3>
+                  <div className="mt-6 flex -space-x-2">
+                    {[1, 2, 3, 4].map(i => (
+                      <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400">U{i}</div>
+                    ))}
+                    <div className="w-8 h-8 rounded-full border-2 border-white bg-[#3BC671] flex items-center justify-center text-[10px] font-bold text-black">+</div>
+                  </div>
+                </div>
+
+                {/* 6. Status do Sistema */}
+                <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Status Operacional</p>
+                    <h3 className="text-xl font-black text-slate-900">SISTEMA ATIVO</h3>
+                    <p className="text-[10px] font-bold text-[#3BC671] uppercase mt-2">{metrics?.total_agents || 0} Agentes Rodando</p>
+                  </div>
+                  <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center animate-pulse">
+                    <div className="w-3 h-3 bg-[#3BC671] rounded-full"></div>
+                  </div>
+                </div>
+
               </div>
             </div>
           )}
+
+          {activeTab === 'settings' && (
+            <div className="space-y-8 animate-in fade-in duration-500">
+              <div className="flex gap-8 border-b border-slate-200">
+                <button
+                  onClick={() => setSettingsSubTab('profile')}
+                  className={`pb-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${settingsSubTab === 'profile' ? 'border-[#3BC671] text-slate-900' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                >
+                  Meus Dados
+                </button>
+                <button
+                  onClick={() => setSettingsSubTab('billing')}
+                  className={`pb-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${settingsSubTab === 'billing' ? 'border-[#3BC671] text-slate-900' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                >
+                  Assinatura
+                </button>
+              </div>
+
+              {settingsSubTab === 'profile' && (
+                <div className="max-w-2xl bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase">Nome Completo</label>
+                      <input type="text" defaultValue="Admin Eleven" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm font-bold outline-none focus:border-[#3BC671]" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase">E-mail</label>
+                      <input type="email" value={email} readOnly className="w-full bg-slate-100 border border-slate-200 rounded-xl p-4 text-sm font-bold text-slate-500 outline-none cursor-not-allowed" />
+                    </div>
+                  </div>
+                  <button className="bg-slate-900 text-white px-8 py-4 rounded-xl font-bold text-sm hover:bg-slate-800 transition-all">Salvar Alterações</button>
+                </div>
+              )}
+
+              {settingsSubTab === 'billing' && (
+                <div className="space-y-6">
+                  <div className="bg-gradient-to-br from-[#3BC671] to-[#2da15a] p-8 rounded-3xl text-black shadow-xl relative overflow-hidden">
+                    <div className="relative z-10">
+                      <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Plano Atual</p>
+                      <h3 className="text-3xl font-black mt-2">PREMIUM UNLIMITED</h3>
+                      <p className="text-sm font-bold mt-4 opacity-80">Renovação Mensal Automática</p>
+                      <button className="mt-8 bg-black text-white px-6 py-3 rounded-xl font-bold text-xs hover:bg-slate-900 transition-all">GERENCIAR FATURAMENTO</button>
+                    </div>
+                    <div className="absolute top-0 right-0 p-8 opacity-20">
+                      <svg className="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.82v-1.91c-1.57-.34-2.82-1.39-2.94-2.89h1.96c.11.75.7 1.29 1.98 1.29 1.3 0 1.87-.66 1.87-1.4 0-2.12-4.75-1.54-4.75-4.8 0-1.45 1.01-2.58 2.89-2.91V6h2.82v1.94c1.23.23 2.19 1.01 2.39 2.16h-1.93c-.15-.49-.49-.93-1.46-.93-.85 0-1.87.39-1.87 1.34 0 1.94 4.75 1.33 4.75 4.74 0 1.45-1.04 2.53-2.89 2.84z" /></svg>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
 
           {activeTab === 'agents' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -744,34 +762,6 @@ ${prompt}
             </div>
           )}
 
-          {activeTab === 'logs' && (
-            <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="px-6 py-4 font-bold text-slate-400 uppercase text-[10px] tracking-widest">ID da Transação</th>
-                    <th className="px-6 py-4 font-bold text-slate-400 uppercase text-[10px] tracking-widest">Sentimento</th>
-                    <th className="px-6 py-4 font-bold text-slate-400 uppercase text-[10px] tracking-widest">Resumo da Conversa</th>
-                    <th className="px-6 py-4 font-bold text-slate-400 uppercase text-[10px] tracking-widest text-right">Ação</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {interactions.map(i => (
-                    <tr key={i.conversation_id} className="hover:bg-slate-50 cursor-pointer transition-colors group">
-                      <td className="px-6 py-4 font-mono text-[11px] text-slate-500">#{i.conversation_id.slice(-8)}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${i.sentiment === 'positive' ? 'bg-[#3BC671]/10 text-[#3BC671]' : 'bg-slate-100 text-slate-400'}`}>{i.sentiment || 'N/A'}</span>
-                      </td>
-                      <td className="px-6 py-4 text-slate-600 font-medium truncate max-w-[300px]">{i.summary}</td>
-                      <td className="px-6 py-4 text-right">
-                        <button className="p-1 px-3 bg-slate-100 text-slate-900 rounded-lg text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-all">DETALHES</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
       </main>
 

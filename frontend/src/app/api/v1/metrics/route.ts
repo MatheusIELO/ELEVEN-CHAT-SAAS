@@ -58,8 +58,16 @@ export async function GET(req: Request) {
         let leads_count = 0;
         let conversion_count = 0;
         const regions: Record<string, number> = {};
+        const products: Record<string, number> = {};
+
+        // Weekly Filtering (last 7 days)
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
         allConversations.forEach(conv => {
+            const convDate = new Date(conv.start_time_unix_ms || Date.now());
+            const isWeekly = convDate >= sevenDaysAgo;
+
             total_duration += (conv.duration_seconds || 0);
 
             // Analisar Data Collection (Entities)
@@ -71,21 +79,33 @@ export async function GET(req: Request) {
                 leads_count++;
             }
 
-            // Exemplo de conversão: se houver alguma entidade de 'venda' ou 'interesse'
-            // Mock de lógica: se coletou email e o status for sucesso
-            if (dataResults.customer_email && conv.status === 'success') {
+            // Exemplo de conversão: se houver interesse em produto e status for sucesso
+            if (dataResults.produto_interesse && conv.status === 'success') {
                 conversion_count++;
             }
 
             // Região (Supondo que configuramos o bot para perguntar isso)
-            const region = dataResults.customer_region || dataResults.cidade || "Não informado";
-            if (region !== "Não informado") {
-                regions[region] = (regions[region] || 0) + 1;
+            if (isWeekly) {
+                const region = dataResults.customer_region || dataResults.cidade || "Outros";
+                if (region !== "Outros") {
+                    regions[region] = (regions[region] || 0) + 1;
+                }
+
+                const product = dataResults.produto_interesse || "Geral";
+                if (product !== "Geral") {
+                    products[product] = (products[product] || 0) + 1;
+                }
             }
         });
 
-        // Formatar Top Regions
-        const top_regions = Object.entries(regions)
+        // Formatar Top Regions (Weekly)
+        const weekly_regions = Object.entries(regions)
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5);
+
+        // Formatar Top Products (Weekly)
+        const weekly_products = Object.entries(products)
             .map(([name, count]) => ({ name, count }))
             .sort((a, b) => b.count - a.count)
             .slice(0, 5);
@@ -98,7 +118,8 @@ export async function GET(req: Request) {
             conversion_rate,
             active_leads: leads_count,
             avg_duration: `${avg_duration}s`,
-            top_regions,
+            weekly_regions,
+            weekly_products,
             total_agents: agents.length
         });
 
