@@ -996,6 +996,26 @@ ${prompt}
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Mensagem de Saudação</label>
                       <input value={firstMessage} onChange={(e) => setFirstMessage(e.target.value)} type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 outline-none focus:border-[#3BC671] transition-all font-semibold text-sm" placeholder="Primeira frase do robô..." />
                     </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Idioma de Operação</label>
+                      <div className="grid grid-cols-3 gap-3">
+                        {[
+                          { id: 'en', label: 'Inglês', icon: '🇺🇸' },
+                          { id: 'pt-br', label: 'PT Brasil', icon: '🇧🇷' },
+                          { id: 'pt', label: 'PT Portugal', icon: '🇵🇹' },
+                        ].map(lang => (
+                          <button
+                            key={lang.id}
+                            onClick={() => setLanguage(lang.id)}
+                            className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all gap-2 ${language === lang.id ? 'border-[#3BC671] bg-[#3BC671]/5 text-slate-900' : 'border-slate-100 bg-white text-slate-400 hover:border-slate-200'}`}
+                          >
+                            <span className="text-xl">{lang.icon}</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest">{lang.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
 

@@ -22,7 +22,7 @@ export async function POST(req: Request) {
             conversation_config: {
                 agent: {
                     prompt: {
-                        prompt: `Seu nome é ${setup.bot_name}. Você atua na área de ${setup.area}. ${(setup.language?.startsWith('pt') || !setup.language) ? "Responda sempre em Português do Brasil com sotaque brasileiro natural." : ""} 
+                        prompt: `Seu nome é ${setup.bot_name}. Você atua na área de ${setup.area}. ${setup.language === 'pt-br' ? "Responda sempre em Português do Brasil com sotaque brasileiro natural." : setup.language === 'pt' ? "Responda sempre em Português de Portugal com sotaque lusitano natural." : "Eng: Respond always in English."} 
                         
                         ESTILO E TONS DE VOZ (PREMIUM):
                         - Seja extremamente humano, amigável, cordial e educado. Utilize um tom profissional e prestativo.
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
                         llm: "gemini-1.5-flash"
                     },
                     first_message: " ", // Forçar espaço para evitar travamento no WebSocket
-                    language: (setup.language || "pt").substring(0, 2)
+                    language: setup.language || "pt-br"
                 },
                 tts: {
                     model_id: "eleven_flash_v2_5",
