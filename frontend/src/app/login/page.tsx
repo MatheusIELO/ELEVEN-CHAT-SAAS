@@ -98,8 +98,8 @@ export default function LoginPage() {
                 </form>
 
                 <p className="text-center text-sm text-slate-500 font-medium">
-                    Não tem uma conta?{' '}
-                    <Link href="/register" className="text-[#3BC671] font-black hover:underline">Criar agora</Link>
+                    As novas contas estão temporariamente suspensas.{' '}
+                    <span className="text-slate-400 font-black cursor-not-allowed">Cadastros fechados</span>
                 </p>
             </div>
         </div>

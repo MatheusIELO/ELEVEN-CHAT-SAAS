@@ -99,6 +99,26 @@ export default function DashboardPage() {
   ]);
 
   useEffect(() => {
+    // Carregar SDK da Meta (Facebook)
+    if (typeof window !== 'undefined') {
+      (window as any).fbAsyncInit = function () {
+        (window as any).FB.init({
+          appId: process.env.NEXT_PUBLIC_META_APP_ID || '',
+          cookie: true,
+          xfbml: true,
+          version: 'v21.0'
+        });
+      };
+
+      (function (d, s, id) {
+        var js, fjs = d.getElementsByTagName(s)[0];
+        if (d.getElementById(id)) return;
+        js = d.createElement(s) as HTMLScriptElement; js.id = id;
+        js.src = "https://connect.facebook.net/pt_BR/sdk.js";
+        if (fjs && fjs.parentNode) fjs.parentNode.insertBefore(js, fjs);
+      }(document, 'script', 'facebook-jssdk'));
+    }
+
     const savedUser = localStorage.getItem('eleven_user');
     const savedEmail = localStorage.getItem('eleven_email');
     if (savedUser) {
@@ -109,6 +129,65 @@ export default function DashboardPage() {
       router.push('/login');
     }
   }, [router]);
+
+  const launchWhatsAppSignup = () => {
+    if (!(window as any).FB) {
+      alert("O SDK da Meta ainda está carregando. Por favor, aguarde um momento.");
+      return;
+    }
+
+    (window as any).FB.login((response: any) => {
+      if (response.authResponse) {
+        const accessToken = response.authResponse.accessToken;
+        console.log("Logged in successfully. Access Token:", accessToken);
+        // Aqui chamaremos nosso backend para processar o signup e capturar os IDs
+        handleMetaSignupCallback(accessToken);
+      } else {
+        console.log('User cancelled login or did not fully authorize.');
+      }
+    }, {
+      scope: 'whatsapp_business_management,whatsapp_business_messaging,business_management',
+      extras: {
+        feature: 'whatsapp_embedded_signup',
+        setup: {
+          // Placeholder para configurações futuras de flow
+        }
+      }
+    });
+  };
+
+  const handleMetaSignupCallback = async (token: string) => {
+    try {
+      setIsSavingNative(true);
+      // Endpoint que implementaremos para trocar o token e buscar Phone ID / WABA ID
+      const res = await fetch(`${API_PREFIX}/whatsapp/embedded-signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'user-id': userId
+        },
+        body: JSON.stringify({
+          access_token: token,
+          agent_id: waAgent?.id
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        alert(`Conectado com sucesso! Número: ${data.phone_number}`);
+        setIsWADrawerOpen(false);
+        fetchData();
+      } else {
+        const err = await res.json();
+        alert("Erro no processamento da Meta: " + (err.message || "Tente novamente"));
+      }
+    } catch (err) {
+      console.error("Signup error:", err);
+      alert("Erro de conexão ao processar login.");
+    } finally {
+      setIsSavingNative(false);
+    }
+  };
 
 
   const handleLogout = () => {
@@ -1145,15 +1224,21 @@ ${prompt}
                   {/* Main Action Component */}
                   <div className="pt-4 space-y-4">
                     <button
-                      onClick={() => {
-                        // Placeholer para launchWhatsAppSignup()
-                        console.log("Iniciando Embedded Signup...");
-                        alert("Preparando login seguro com Meta...");
-                      }}
-                      className="w-full bg-[#1877F2] text-white font-black text-sm py-5 rounded-[2rem] hover:brightness-110 active:scale-[0.98] transition-all shadow-xl shadow-blue-500/20 flex items-center justify-center gap-3 uppercase tracking-widest"
+                      onClick={launchWhatsAppSignup}
+                      disabled={isSavingNative}
+                      className="w-full bg-[#1877F2] text-white font-black text-sm py-5 rounded-[2rem] hover:brightness-110 active:scale-[0.98] transition-all shadow-xl shadow-blue-500/20 flex items-center justify-center gap-3 uppercase tracking-widest disabled:opacity-50"
                     >
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.248h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
-                      Conectar com Facebook
+                      {isSavingNative ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                          Processando...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.248h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
+                          Conectar com Facebook
+                        </>
+                      )}
                     </button>
 
                     <p className="text-[10px] text-slate-400 font-bold text-center uppercase tracking-widest">

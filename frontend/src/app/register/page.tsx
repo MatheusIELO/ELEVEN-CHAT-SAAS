@@ -35,53 +35,21 @@ export default function RegisterPage() {
                     <p className="text-slate-400 font-medium">Eleve o nível do seu atendimento hoje</p>
                 </div>
 
-                <form onSubmit={handleRegister} className="bg-white/5 border border-white/10 p-8 rounded-3xl shadow-2xl backdrop-blur-xl space-y-6">
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome Completo</label>
-                        <input
-                            type="text"
-                            required
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm outline-none focus:border-[#3BC671] focus:ring-1 focus:ring-[#3BC671] transition-all"
-                            placeholder="Ex: Matheus Melo"
-                        />
+                <div className="bg-white/5 border border-white/10 p-12 rounded-[2.5rem] shadow-2xl backdrop-blur-xl text-center space-y-6">
+                    <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                     </div>
-
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Melhor E-mail</label>
-                        <input
-                            type="email"
-                            required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm outline-none focus:border-[#3BC671] focus:ring-1 focus:ring-[#3BC671] transition-all"
-                            placeholder="seu@email.com"
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Criar Senha</label>
-                        <input
-                            type="password"
-                            required
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm outline-none focus:border-[#3BC671] focus:ring-1 focus:ring-[#3BC671] transition-all"
-                            placeholder="Mínimo 8 caracteres"
-                        />
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full bg-[#3BC671] text-black font-black py-4 rounded-2xl shadow-xl shadow-green-500/10 hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    <h2 className="text-xl font-black text-white uppercase tracking-tight">Acesso Restrito</h2>
+                    <p className="text-sm text-slate-400 font-medium leading-relaxed">
+                        O Eleven Chat está em fase de implantação exclusiva. Novas contas estão suspensas para garantir a estabilidade da rede.
+                    </p>
+                    <Link
+                        href="/login"
+                        className="inline-block w-full bg-slate-800 text-slate-400 font-black py-4 rounded-2xl hover:bg-slate-700 transition-all text-sm uppercase tracking-widest"
                     >
-                        {isLoading ? (
-                            <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-                        ) : 'CRIAR MINHA CONTA'}
-                    </button>
-                </form>
+                        Voltar ao Login
+                    </Link>
+                </div>
 
                 <p className="text-center text-sm text-slate-500 font-medium">
                     Já tem conta?{' '}
