@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const [settingsSubTab, setSettingsSubTab] = useState<'profile' | 'billing'>('profile');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const [stats, setStats] = useState({ total_conversations: 0, total_leads: 0, conversion_rate: '0%' });
   const [interactions, setInteractions] = useState<any[]>([]);
@@ -322,7 +323,7 @@ export default function DashboardPage() {
   };
 
   const handleSaveNativeConfig = async () => {
-    if (!metaAccessToken || !metaPhoneNumberId) return alert("Preencha o Access Token e o Phone Number ID.");
+    if (!metaPhoneNumberId) return alert("Por favor, preencha o Phone Number ID.");
     setIsSavingNative(true);
     try {
       const res = await fetch(`${API_PREFIX}/agent/whatsapp/config`, {
@@ -331,9 +332,7 @@ export default function DashboardPage() {
         body: JSON.stringify({
           agent_id: waAgent.agent_id,
           whatsapp_config: {
-            access_token: metaAccessToken,
             phone_number_id: metaPhoneNumberId,
-            waba_id: metaWabaId,
             mode: 'native'
           }
         })
@@ -494,6 +493,52 @@ ${prompt}
 
   return (
     <div className="min-h-screen bg-[#F8F9FB] text-[#0F1115] font-sans antialiased flex flex-col lg:flex-row">
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-[100] lg:hidden">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
+          <aside className="relative w-64 bg-[#0F1115] h-full flex flex-col animate-in slide-in-from-left duration-300">
+            <div className="p-6 flex items-center justify-between border-b border-slate-800/50">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-[#3BC671] rounded-lg flex items-center justify-center text-black font-black text-sm">11</div>
+                <span className="font-bold tracking-tight text-white text-lg">Eleven Chat</span>
+              </div>
+              <button onClick={() => setIsMobileMenuOpen(false)} className="text-slate-400">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <nav className="flex-1 px-4 py-6 space-y-2">
+              {[
+                { id: 'dash', label: 'Painel Geral', icon: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z' },
+                { id: 'agents', label: 'Meus Agentes', icon: 'M12 2a10 10 0 0 1 10 10c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2z' },
+              ].map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => { setActiveTab(item.id as any); setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === item.id ? 'bg-[#3BC671] text-black shadow-lg shadow-green-500/20' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                >
+                  <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d={item.icon} /></svg>
+                  {item.label}
+                </button>
+              ))}
+            </nav>
+            <div className="p-4 border-t border-slate-800/50 space-y-2">
+              <button
+                onClick={() => { setActiveTab('settings'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'settings' ? 'bg-[#3BC671]/10 text-[#3BC671]' : 'text-slate-400 hover:text-white'}`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
+                Configurações
+              </button>
+              <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-500 hover:text-red-400 transition-colors">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+                Sair
+              </button>
+            </div>
+          </aside>
+        </div>
+      )}
+
       {/* Sidebar Navigation - FIXED */}
       <aside className="hidden lg:flex w-64 bg-[#0F1115] text-white flex-col fixed left-0 top-0 h-screen z-50 border-r border-slate-800">
         <div className="p-6 flex items-center gap-3 border-b border-slate-800/50 mb-4">
@@ -534,10 +579,15 @@ ${prompt}
 
       {/* Main Content Area - SCROLLABLE */}
       <main className="flex-1 lg:ml-64 min-h-screen flex flex-col">
-        <header className="h-16 flex items-center justify-between px-8 bg-white border-b border-slate-200 sticky top-0 z-10">
-          <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest">
-            {activeTab === 'dash' ? 'Visão Geral' : activeTab === 'agents' ? 'IA Conversacional' : 'Configurações'}
-          </h2>
+        <header className="h-16 flex items-center justify-between px-4 lg:px-8 bg-white border-b border-slate-200 sticky top-0 z-10">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-lg">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+            </button>
+            <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+              {activeTab === 'dash' ? 'Visão Geral' : activeTab === 'agents' ? 'IA Conversacional' : 'Configurações'}
+            </h2>
+          </div>
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex items-center gap-2 text-[11px] font-bold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
               <div className="w-1.5 h-1.5 bg-[#3BC671] rounded-full"></div>
@@ -553,14 +603,18 @@ ${prompt}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
                 {/* 1. Volume de Conversas */}
-                <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm overflow-hidden relative group">
-                  <div className="absolute top-0 right-0 p-8 opacity-5">
+                <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden relative group hover:border-[#3BC671]/30 transition-all">
+                  <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                     <svg className="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                   </div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Volume Total</p>
-                  <h3 className="text-5xl font-black text-slate-900 leading-none">{metrics?.total_conversations || 0}</h3>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#3BC671] animate-pulse"></span>
+                    Volume de Conversas
+                  </p>
+                  <h3 className="text-6xl font-black text-slate-900 leading-none tracking-tight">{metrics?.total_conversations || 0}</h3>
                   <p className="text-xs font-bold text-slate-500 mt-4 flex items-center gap-2">
-                    <span className="text-[#3BC671]">↑ 12%</span> vs semana passada
+                    <span className="px-2 py-0.5 bg-green-50 text-[#3BC671] rounded-md text-[10px]">↑ 12%</span>
+                    <span className="opacity-60">Crescimento Semanal</span>
                   </p>
                 </div>
 
@@ -616,11 +670,15 @@ ${prompt}
                 </div>
 
                 {/* 4. Taxa de Conversão */}
-                <div className="bg-[#3BC671] p-8 rounded-3xl shadow-lg shadow-green-500/10 flex flex-col justify-between">
-                  <p className="text-[10px] font-black text-black/50 uppercase tracking-[0.2em]">Taxa de Conversão</p>
+                <div className="bg-[#0F1115] p-8 rounded-[2rem] shadow-xl relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-[#3BC671] blur-[80px] opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Taxa de Conversão</p>
                   <div>
-                    <h3 className="text-5xl font-black text-black">{metrics?.conversion_rate || 0}%</h3>
-                    <p className="text-xs font-bold text-black/60 mt-2">Leads qualificados vs Total</p>
+                    <h3 className="text-6xl font-black text-[#3BC671] leading-none tracking-tight">{metrics?.conversion_rate || 0}%</h3>
+                    <div className="mt-6 h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-full bg-[#3BC671] transition-all duration-1000" style={{ width: `${metrics?.conversion_rate || 0}%` }}></div>
+                    </div>
+                    <p className="text-xs font-bold text-slate-500 mt-4">Eficiência de Qualificação</p>
                   </div>
                 </div>
 
@@ -749,18 +807,27 @@ ${prompt}
                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{agent.area}</p>
                         </div>
 
-                        <div className="w-full pt-6 border-t border-slate-50 flex justify-center gap-3">
+                        <div className="w-full pt-6 border-t border-slate-50 flex flex-col gap-2">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => { setAgentId(agent.agent_id); setBotName(agent.bot_name); setShowTest(true); setChatMessages([]); }}
+                              className="bg-slate-900 text-white flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all"
+                            >
+                              Telas de Teste
+                            </button>
+                            <button
+                              onClick={() => openEditDrawer(agent)}
+                              className="bg-slate-100 text-slate-500 p-3 rounded-xl hover:bg-slate-200 transition-all"
+                            >
+                              <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14" transform="rotate(45 12 12)" /></svg>
+                            </button>
+                          </div>
                           <button
-                            onClick={() => { setAgentId(agent.agent_id); setBotName(agent.bot_name); setShowTest(true); setChatMessages([]); }}
-                            className="bg-slate-900 text-white w-full py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all"
+                            onClick={() => openWADrawer(agent)}
+                            className={`w-full py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${agent.whatsapp_config?.phone_number_id ? 'bg-[#3BC671]/10 text-[#3BC671] border border-[#3BC671]/20' : 'bg-[#3BC671] text-black hover:brightness-110 shadow-lg shadow-green-500/10'}`}
                           >
-                            Telas de Teste
-                          </button>
-                          <button
-                            onClick={() => openEditDrawer(agent)}
-                            className="bg-slate-100 text-slate-500 p-3 rounded-xl hover:bg-slate-200 transition-all"
-                          >
-                            <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14" transform="rotate(45 12 12)" /></svg>
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
+                            {agent.whatsapp_config?.phone_number_id ? 'WhatsApp Ativo' : 'Conectar WhatsApp'}
                           </button>
                         </div>
 
@@ -1038,135 +1105,90 @@ ${prompt}
                 </button>
               </header>
 
-              <div className="flex-1 overflow-y-auto p-8 space-y-8">
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-                  {/* Connection Mode Selector */}
-                  <div className="flex bg-slate-100 p-1 rounded-xl">
-                    <button
-                      onClick={() => setConnectionMode('automation')}
-                      className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all ${connectionMode === 'automation' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}
-                    >
-                      Automação (Lite)
-                    </button>
-                    <button
-                      onClick={() => setConnectionMode('native')}
-                      className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all ${connectionMode === 'native' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}
-                    >
-                      Meta API (Pro)
-                    </button>
+              <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-8">
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+
+                  {/* Status Banner */}
+                  <div className="bg-[#3BC671]/10 border border-[#3BC671]/20 p-6 rounded-[2rem] flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-black text-[#3BC671] uppercase tracking-[0.2em] mb-1">Status da Integração</p>
+                      <h4 className="text-sm font-bold text-slate-900">PRONTO PARA CONEXÃO</h4>
+                    </div>
+                    <div className="w-10 h-10 bg-[#3BC671] rounded-2xl flex items-center justify-center text-black">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    </div>
                   </div>
 
-                  {connectionMode === 'automation' ? (
-                    <>
-                      <div className="space-y-4 bg-slate-50 p-6 rounded-2xl border border-slate-200">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Número do WhatsApp (Obrigatório)</label>
-                          <input value={targetPhone} onChange={e => setTargetPhone(e.target.value)} type="text" placeholder="Ex: +5511999999999" className="w-full bg-white border border-slate-200 rounded-xl p-3.5 outline-none focus:border-[#3BC671] transition-all font-semibold text-sm placeholder:text-slate-300" />
-                          <p className="text-[10px] text-slate-500 font-medium">Este número será registrado no Meta para automação.</p>
+                  {/* Main Config */}
+                  <div className="space-y-6">
+                    <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 space-y-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-8 h-8 bg-slate-900 rounded-xl flex items-center justify-center text-[#3BC671]">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
                         </div>
+                        <p className="text-[11px] font-black text-slate-900 uppercase tracking-tight">Identificador do Número</p>
                       </div>
 
-                      <div className="space-y-4">
-                        <div className="bg-[#0F1115] text-white p-6 rounded-2xl space-y-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-[#3BC671] rounded-xl flex items-center justify-center text-black font-black">
-                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
-                            </div>
-                            <div>
-                              <p className="text-xs font-bold">Automation Cloud</p>
-                              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Powered by Mastra & Browser Use</p>
-                            </div>
-                          </div>
-
-                          {!automationId && (
-                            <>
-                              <div className="grid grid-cols-2 gap-3">
-                                <input value={autoEmail} onChange={e => setAutoEmail(e.target.value)} type="email" placeholder="Email de Acesso" className="bg-white/5 border border-white/10 rounded-lg p-3 text-xs outline-none focus:border-[#3BC671]" />
-                                <input value={autoPassword} onChange={e => setAutoPassword(e.target.value)} type="password" placeholder="Sua Senha" className="bg-white/5 border border-white/10 rounded-lg p-3 text-xs outline-none focus:border-[#3BC671]" />
-                              </div>
-                              <button
-                                onClick={() => {
-                                  setAgentId(waAgent.agent_id);
-                                  handleStartAutomation();
-                                }}
-                                disabled={isAutoConnecting}
-                                className="w-full bg-[#3BC671] text-black font-bold text-xs py-4 rounded-xl hover:brightness-110 active:scale-[0.98] transition-all"
-                              >
-                                {isAutoConnecting ? 'INICIALIZANDO CLOUD...' : 'INICIAR REGISTRO NO META'}
-                              </button>
-                            </>
-                          )}
-
-                          {automationId && automationData?.step === 'awaiting_otp' && (
-                            <div className="space-y-3 bg-[#3BC671]/10 p-4 rounded-xl border border-[#3BC671]/20">
-                              <p className="text-[10px] text-[#3BC671] font-bold uppercase tracking-widest">Código SMS Recebido:</p>
-                              <div className="flex gap-2">
-                                <input value={otpValue} onChange={e => setOtpValue(e.target.value)} type="text" maxLength={6} placeholder="000000" className="flex-1 bg-white/10 border border-white/20 rounded-lg p-3 text-center text-xl font-bold tracking-[0.3em] outline-none" />
-                                <button onClick={handleSubmitOTP} className="bg-[#3BC671] text-black px-6 rounded-lg font-bold text-xs">ENVIAR</button>
-                              </div>
-                            </div>
-                          )}
-
-                          {automationId && automationData?.step === 'success' && (
-                            <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl text-center">
-                              <p className="text-[#3BC671] text-xs font-bold uppercase tracking-widest">WhatsApp Conectado!</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="space-y-6">
-                      <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex gap-3">
-                        <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white shrink-0">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        </div>
-                        <div>
-                          <p className="text-[11px] font-bold text-blue-900 uppercase tracking-tight">Modo Nativo (Coexistência)</p>
-                          <p className="text-[10px] text-blue-700 font-medium leading-relaxed">Use o mesmo número no seu celular e na IA. Configure o Webhook abaixo no seu Meta Developer App.</p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Meta Access Token</label>
-                          <input value={metaAccessToken} onChange={e => setMetaAccessToken(e.target.value)} type="password" placeholder="EAAB..." className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 outline-none focus:border-[#3BC671] transition-all font-mono text-xs" />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Phone Number ID</label>
-                            <input value={metaPhoneNumberId} onChange={e => setMetaPhoneNumberId(e.target.value)} type="text" placeholder="123456789..." className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 outline-none focus:border-[#3BC671] transition-all font-mono text-xs" />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">WABA ID</label>
-                            <input value={metaWabaId} onChange={e => setMetaWabaId(e.target.value)} type="text" placeholder="987654321..." className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 outline-none focus:border-[#3BC671] transition-all font-mono text-xs" />
-                          </div>
-                        </div>
-
-                        <div className="p-4 bg-slate-900 rounded-2xl space-y-3">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL do Webhook (Copie para o Meta)</label>
-                          <div className="flex gap-2">
-                            <input readOnly value={typeof window !== 'undefined' ? `${window.location.origin}/api/v1/webhooks/whatsapp` : ''} className="flex-1 bg-white/5 border border-white/10 rounded-lg p-3 text-[10px] text-white font-mono outline-none" />
-                            <button onClick={() => navigator.clipboard.writeText(`${window.location.origin}/api/v1/webhooks/whatsapp`)} className="bg-white/10 hover:bg-white/20 px-3 rounded-lg text-white transition-all text-[10px] font-bold">COPIAR</button>
-                          </div>
-                        </div>
-
-                        <button
-                          onClick={handleSaveNativeConfig}
-                          disabled={isSavingNative || !metaAccessToken || !metaPhoneNumberId}
-                          className="w-full bg-[#3BC671] text-black font-bold text-xs py-4 rounded-xl hover:brightness-110 active:scale-[0.98] transition-all shadow-lg shadow-green-500/10"
-                        >
-                          {isSavingNative ? 'SALVANDO CONFIGURAÇÃO...' : 'SALVAR CONFIGURAÇÃO NATIVA'}
-                        </button>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number ID</label>
+                        <input
+                          value={metaPhoneNumberId}
+                          onChange={e => setMetaPhoneNumberId(e.target.value)}
+                          type="text"
+                          placeholder="Ex: 104592837..."
+                          className="w-full bg-white border border-slate-200 rounded-2xl p-4 outline-none focus:border-[#3BC671] focus:ring-4 focus:ring-[#3BC671]/10 transition-all font-mono text-sm font-bold text-slate-700"
+                        />
+                        <p className="text-[10px] text-slate-500 font-bold ml-1 flex items-center gap-2">
+                          <svg className="w-3 h-3 text-[#3BC671]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                          Obtenha este ID no Painel Meta Developer.
+                        </p>
                       </div>
                     </div>
-                  )}
 
+                    <div className="p-6 bg-slate-900 rounded-[2rem] space-y-4 shadow-xl">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">URL do Webhook</label>
+                        <span className="px-2 py-0.5 bg-[#3BC671] text-black text-[8px] font-black rounded-full">OBRIGATÓRIO</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          readOnly
+                          value={typeof window !== 'undefined' ? `${window.location.origin}/api/v1/webhooks/whatsapp` : ''}
+                          className="flex-1 bg-white/5 border border-white/10 rounded-xl p-4 text-[11px] text-[#3BC671] font-mono outline-none"
+                        />
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(`${window.location.origin}/api/v1/webhooks/whatsapp`);
+                            alert("Copiado!");
+                          }}
+                          className="bg-white/10 hover:bg-[#3BC671] hover:text-black px-4 rounded-xl text-white transition-all text-[10px] font-black uppercase"
+                        >
+                          Copiar
+                        </button>
+                      </div>
+                      <p className="text-[9px] text-slate-500 font-bold leading-relaxed">
+                        Configure esta URL no seu App do Meta para que a Eleven Chat processe as mensagens em tempo real.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={handleSaveNativeConfig}
+                      disabled={isSavingNative || !metaPhoneNumberId}
+                      className="w-full bg-[#3BC671] text-black font-black text-xs py-5 rounded-[2rem] hover:brightness-110 active:scale-[0.98] transition-all shadow-xl shadow-green-500/20 disabled:opacity-50 flex items-center justify-center gap-3 uppercase tracking-widest"
+                    >
+                      {isSavingNative ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                          Salvando...
+                        </>
+                      ) : 'Confirmar Ativação Nativa'}
+                    </button>
+                  </div>
                 </div>
               </div>
-              <footer className="p-8 border-t border-slate-100 bg-white">
-                <button onClick={() => setIsWADrawerOpen(false)} className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold text-sm">Fechar</button>
+
+              <footer className="p-8 border-t border-slate-100 bg-white/80 backdrop-blur-md shrink-0">
+                <button onClick={() => setIsWADrawerOpen(false)} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">Fechar Ajustes</button>
               </footer>
             </div>
           </div>
@@ -1191,7 +1213,7 @@ ${prompt}
               </div>
               <button
                 onClick={() => setShowTest(false)}
-                className="p-3 hover-bg-slate-50 rounded-2xl transition-all"
+                className="p-3 hover:bg-slate-50 rounded-2xl transition-all"
               >
                 <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </button>
@@ -1230,8 +1252,8 @@ ${prompt}
             </div>
 
             {/* Input Area */}
-            <div className="p-8 bg-white border-t border-slate-50 shrink-0">
-              <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-[1.5rem] p-2 pr-3 focus-within:border-[#3BC671] transition-all">
+            <div className="p-4 sm:p-8 bg-white border-t border-slate-50 shrink-0">
+              <div className="flex items-center gap-3 sm:gap-4 bg-slate-50 border border-slate-200 rounded-full sm:rounded-[1.5rem] p-2 pr-2 sm:pr-3 focus-within:border-[#3BC671] transition-all">
                 <input
                   value={chatInput}
                   onChange={e => setChatInput(e.target.value)}
