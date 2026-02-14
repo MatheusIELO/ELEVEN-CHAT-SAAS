@@ -98,6 +98,8 @@ export default function DashboardPage() {
     { sender: 'sensei', text: 'Olá! Eu sou o Sensei. Estou aqui para elevar o nível do seu negócio. O que vamos criar hoje?' }
   ]);
 
+  const [activeAgentMenu, setActiveAgentMenu] = useState<string | null>(null);
+
   useEffect(() => {
     // Carregar SDK da Meta (Facebook)
     if (typeof window !== 'undefined') {
@@ -227,12 +229,39 @@ export default function DashboardPage() {
       });
       if (res.ok) {
         setAgents(prev => prev.filter(a => a.agent_id !== agent_id));
+        setActiveAgentMenu(null);
         alert("Agente removido com sucesso!");
       } else {
         alert("Erro ao remover agente.");
       }
     } catch (err) {
       alert("Erro na conexão ao deletar.");
+    }
+  };
+
+  const handleToggleArchive = async (agent: any) => {
+    const isArchived = agent.status === 'archived';
+    const newStatus = isArchived ? 'active' : 'archived';
+
+    try {
+      const res = await fetch(`${API_PREFIX}/agent/setup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'user-id': userId },
+        body: JSON.stringify({
+          ...agent,
+          status: newStatus
+        })
+      });
+
+      if (res.ok) {
+        setAgents(prev => prev.map(a => a.id === agent.id ? { ...a, status: newStatus } : a));
+        setActiveAgentMenu(null);
+        alert(isArchived ? "Unidade reativada!" : "Unidade arquivada (inoperante).");
+      } else {
+        alert("Erro ao atualizar status.");
+      }
+    } catch (err) {
+      alert("Erro de conexão.");
     }
   };
 
@@ -883,12 +912,17 @@ ${prompt}
                 {agents.map((agent, idx) => {
                   const colors = ['#3BC671', '#3b82f6', '#a855f7', '#f97316', '#ec4899', '#06b6d4'];
                   const color = colors[idx % colors.length];
+                  const isArchived = agent.status === 'archived';
 
                   return (
-                    <div key={agent.id} className="bg-white border border-slate-200 rounded-[2.5rem] p-8 shadow-sm hover:shadow-xl hover:translate-y-[-4px] transition-all flex flex-col items-center text-center group relative overflow-hidden w-full">
+                    <div key={agent.id} className={`bg-white border border-slate-200 rounded-[2.5rem] p-8 shadow-sm hover:shadow-xl hover:translate-y-[-4px] transition-all flex flex-col items-center text-center group relative overflow-hidden w-full ${isArchived ? 'grayscale' : ''}`}>
+                      {isArchived && (
+                        <div className="absolute top-4 left-4 z-10 bg-slate-900 text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest">Inoperante</div>
+                      )}
+
                       {/* Colorful Logo 11 */}
                       <div
-                        className="w-16 h-16 rounded-[1.5rem] flex items-center justify-center font-black text-2xl italic mb-6 shadow-lg transition-transform group-hover:scale-110"
+                        className="w-20 h-20 rounded-[2rem] flex items-center justify-center font-black text-3xl italic mb-6 shadow-lg transition-transform group-hover:scale-110"
                         style={{ backgroundColor: `${color}15`, color: color, border: `2px solid ${color}30` }}
                       >
                         11
@@ -900,19 +934,40 @@ ${prompt}
                       </div>
 
                       <div className="w-full pt-6 border-t border-slate-50 flex flex-col gap-3">
-                        <div className="flex gap-2 w-full">
+                        <div className="flex gap-2 w-full relative">
                           <button
                             onClick={() => { setAgentId(agent.agent_id); setBotName(agent.bot_name); setShowTest(true); setChatMessages([]); }}
-                            className="bg-slate-900 text-white flex-1 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-sm"
+                            disabled={isArchived}
+                            className="bg-slate-900 text-white flex-1 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-sm disabled:opacity-50"
                           >
                             Testar
                           </button>
-                          <button
-                            onClick={() => openEditDrawer(agent)}
-                            className="bg-slate-100 text-slate-500 p-3.5 rounded-2xl hover:bg-slate-200 transition-all"
-                          >
-                            <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                          </button>
+                          <div className="relative">
+                            <button
+                              onClick={() => setActiveAgentMenu(activeAgentMenu === agent.id ? null : agent.id)}
+                              className="bg-slate-100 text-slate-500 p-3.5 rounded-2xl hover:bg-slate-200 transition-all"
+                            >
+                              <svg className={`w-4 h-4 transition-transform duration-500 ${activeAgentMenu === agent.id ? 'rotate-90' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z" strokeLinecap="round" strokeLinejoin="round" /><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                            </button>
+
+                            {activeAgentMenu === agent.id && (
+                              <div className="absolute right-0 bottom-full mb-2 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+                                <button onClick={() => { openEditDrawer(agent); setActiveAgentMenu(null); }} className="w-full text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-2">
+                                  <svg className="w-3.5 h-3.5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                  Editar Configs
+                                </button>
+                                <button onClick={() => handleToggleArchive(agent)} className="w-full text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-2">
+                                  <svg className={`w-3.5 h-3.5 ${isArchived ? 'text-green-500' : 'text-orange-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
+                                  {isArchived ? 'Reativar Unidade' : 'Arquivar Unidade'}
+                                </button>
+                                <div className="h-px bg-slate-50 my-1" />
+                                <button onClick={() => handleDeleteAgent(agent.id, agent.agent_id)} className="w-full text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 transition-colors flex items-center gap-2">
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                  Excluir Definitivo
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <button
                           onClick={() => openWADrawer(agent)}
