@@ -8,16 +8,38 @@ export default function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
     const router = useRouter();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
-        // Simulating login for now, will integrate with Firebase Auth soon
-        setTimeout(() => {
+        setError('');
+
+        // Admin Credentials check
+        if (email === 'matheusdevff@gmail.com' && password === 'Griza1@') {
+            setTimeout(() => {
+                localStorage.setItem('eleven_user', 'admin_master');
+                localStorage.setItem('eleven_email', email);
+                setIsLoading(false);
+                router.push('/');
+            }, 1000);
+            return;
+        }
+
+        // Generic mock for other users (for dev speed)
+        if (email && password.length >= 6) {
+            setTimeout(() => {
+                const mockUid = btoa(email).slice(0, 10);
+                localStorage.setItem('eleven_user', mockUid);
+                localStorage.setItem('eleven_email', email);
+                setIsLoading(false);
+                router.push('/');
+            }, 1000);
+        } else {
             setIsLoading(false);
-            router.push('/');
-        }, 1500);
+            setError('Credenciais inválidas ou senha muito curta.');
+        }
     };
 
     return (
@@ -32,6 +54,11 @@ export default function LoginPage() {
                 </div>
 
                 <form onSubmit={handleLogin} className="bg-white/5 border border-white/10 p-8 rounded-3xl shadow-2xl backdrop-blur-xl space-y-6">
+                    {error && (
+                        <div className="bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest p-4 rounded-2xl text-center">
+                            {error}
+                        </div>
+                    )}
                     <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">E-mail Corporativo</label>
                         <input

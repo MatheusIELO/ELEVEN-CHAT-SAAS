@@ -14,8 +14,11 @@ export default function RegisterPage() {
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
+
         // Simulating registration
         setTimeout(() => {
+            const mockUid = btoa(email).slice(0, 10);
+            localStorage.setItem('eleven_user', mockUid);
             setIsLoading(false);
             router.push('/');
         }, 1500);

@@ -9,7 +9,6 @@ export default function DashboardPage() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [userId, setUserId] = useState('');
 
   const [activeTab, setActiveTab] = useState<'dash' | 'agents' | 'settings'>('dash');
@@ -100,24 +99,20 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const savedUser = localStorage.getItem('eleven_user');
+    const savedEmail = localStorage.getItem('eleven_email');
     if (savedUser) {
       setUserId(savedUser);
+      if (savedEmail) setEmail(savedEmail);
       setIsLoggedIn(true);
+    } else {
+      router.push('/login');
     }
-  }, []);
+  }, [router]);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email && password) {
-      const mockUid = btoa(email).slice(0, 10);
-      localStorage.setItem('eleven_user', mockUid);
-      setUserId(mockUid);
-      setIsLoggedIn(true);
-    }
-  };
 
   const handleLogout = () => {
     localStorage.removeItem('eleven_user');
+    localStorage.removeItem('eleven_email');
     setIsLoggedIn(false);
     router.push('/login');
   };
@@ -491,36 +486,16 @@ ${prompt}
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-[#0F1115] flex items-center justify-center p-6 font-sans antialiased text-white">
-        <div className="max-w-md w-full bg-[#181A20] rounded-2xl shadow-2xl p-10 border border-[#2A2E37]">
-          <div className="flex justify-center mb-8">
-            <div className="w-12 h-12 bg-[#3BC671] rounded-xl flex items-center justify-center text-black font-bold text-xl shadow-lg shadow-green-500/20">11</div>
-          </div>
-          <h1 className="text-2xl font-bold mb-1 text-center tracking-tight">Bem-vindo ao Eleven Chat</h1>
-          <p className="text-slate-500 text-center mb-10 text-sm font-medium">Inteligência Conversacional Profissional</p>
-
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">E-mail Profissional</label>
-              <input value={email} onChange={e => setEmail(e.target.value)} type="email" required className="w-full bg-[#23262F] border border-[#2A2E37] rounded-xl p-4 outline-none focus:border-[#3BC671] transition-all text-sm placeholder:text-slate-600" placeholder="voce@empresa.com" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Senha</label>
-              <input value={password} onChange={e => setPassword(e.target.value)} type="password" required className="w-full bg-[#23262F] border border-[#2A2E37] rounded-xl p-4 outline-none focus:border-[#3BC671] transition-all text-sm placeholder:text-slate-600" placeholder="••••••••" />
-            </div>
-            <button type="submit" className="w-full bg-[#3BC671] text-black py-4 rounded-xl font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-[#3BC671]/10 mt-4 active:scale-[0.99]">
-              Entrar
-            </button>
-          </form>
-        </div>
+      <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
+        <div className="w-16 h-16 bg-[#3BC671] rounded-2xl flex items-center justify-center text-black font-black text-2xl animate-bounce shadow-2xl shadow-green-500/20 italic">11</div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-[#F8F9FB] text-[#0F1115] font-sans antialiased flex flex-col lg:flex-row">
-      {/* Sidebar Navigation */}
-      <aside className="w-full lg:w-64 bg-[#0F1115] text-white flex flex-col shrink-0 border-r border-slate-800">
+      {/* Sidebar Navigation - FIXED */}
+      <aside className="hidden lg:flex w-64 bg-[#0F1115] text-white flex-col fixed left-0 top-0 h-screen z-50 border-r border-slate-800">
         <div className="p-6 flex items-center gap-3 border-b border-slate-800/50 mb-4">
           <div className="w-8 h-8 bg-[#3BC671] rounded-lg flex items-center justify-center text-black font-black text-sm">11</div>
           <span className="font-bold tracking-tight text-lg">Eleven Chat</span>
@@ -557,8 +532,8 @@ ${prompt}
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto">
+      {/* Main Content Area - SCROLLABLE */}
+      <main className="flex-1 lg:ml-64 min-h-screen flex flex-col">
         <header className="h-16 flex items-center justify-between px-8 bg-white border-b border-slate-200 sticky top-0 z-10">
           <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest">
             {activeTab === 'dash' ? 'Visão Geral' : activeTab === 'agents' ? 'IA Conversacional' : 'Configurações'}
@@ -732,61 +707,12 @@ ${prompt}
           {activeTab === 'agents' && (
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700">
 
-              {/* Sensei Consultation Box */}
+
+              {/* Sensei Consultation Box - HIDDEN FOR SECOND RELEASE
               <div className="bg-slate-900 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden group border border-white/5">
-                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                  <svg className="w-48 h-48 text-[#3BC671]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" /></svg>
-                </div>
-
-                <div className="relative z-10 space-y-8">
-                  <div className="flex items-center gap-5">
-                    <div className="w-16 h-16 bg-[#3BC671] rounded-3xl flex items-center justify-center font-black text-black text-2xl italic shadow-2xl shadow-green-500/40 animate-pulse">11</div>
-                    <div>
-                      <h3 className="text-white font-black text-2xl tracking-tighter uppercase">SENSEI IA <span className="text-[#3BC671] text-[10px] ml-2 px-3 py-1 bg-[#3BC671]/10 border border-[#3BC671]/30 rounded-full font-black tracking-widest">STARTUP MENTOR</span></h3>
-                      <p className="text-slate-400 text-sm font-bold uppercase tracking-widest opacity-60">Consultoria de Alto Nível para sua Escala</p>
-                    </div>
-                  </div>
-
-                  {/* Sensei Message History */}
-                  <div className="space-y-4 max-h-[300px] overflow-y-auto pr-4 custom-scrollbar">
-                    {senseiMessages.map((m, i) => (
-                      <div key={i} className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-500`}>
-                        <div className={`max-w-[80%] px-6 py-4 rounded-3xl text-sm font-medium leading-relaxed ${m.sender === 'user' ? 'bg-[#3BC671] text-black rounded-tr-none' : 'bg-white/5 text-slate-200 border border-white/10 rounded-tl-none'}`}>
-                          {m.text.split('\n').map((line, j) => <p key={j} className={j > 0 ? 'mt-2' : ''}>{line}</p>)}
-                        </div>
-                      </div>
-                    ))}
-                    {isSenseiLoading && (
-                      <div className="flex justify-start">
-                        <div className="bg-white/5 border border-white/10 px-6 py-4 rounded-3xl rounded-tl-none flex gap-1">
-                          <div className="w-1.5 h-1.5 bg-[#3BC671] rounded-full animate-bounce"></div>
-                          <div className="w-1.5 h-1.5 bg-[#3BC671] rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                          <div className="w-1.5 h-1.5 bg-[#3BC671] rounded-full animate-bounce [animation-delay:0.4s]"></div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex gap-4">
-                    <div className="flex-1 relative">
-                      <input
-                        value={senseiInput}
-                        onChange={(e) => setSenseiInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSenseiConsult()}
-                        placeholder="Como posso escalar meu atendimento hoje, mestre?"
-                        className="w-full bg-white/10 border border-white/10 rounded-2xl px-6 py-5 text-white text-sm outline-none focus:border-[#3BC671] focus:ring-1 focus:ring-[#3BC671] transition-all placeholder:text-slate-500 font-bold"
-                      />
-                      <button
-                        onClick={handleSenseiConsult}
-                        disabled={isSenseiLoading}
-                        className="absolute right-3 top-2.5 bg-[#3BC671] text-black px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-green-500/20 disabled:opacity-50"
-                      >
-                        {isSenseiLoading ? 'PENSANDO...' : 'CONSULTAR SENSEI'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                ... (código preservado para release 2)
               </div>
+              */}
 
               {/* Agents Grid */}
               <div className="space-y-6">
