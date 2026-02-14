@@ -1106,84 +1106,76 @@ ${prompt}
               </header>
 
               <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-8">
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
-                  {/* Status Banner */}
-                  <div className="bg-[#3BC671]/10 border border-[#3BC671]/20 p-6 rounded-[2rem] flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] font-black text-[#3BC671] uppercase tracking-[0.2em] mb-1">Status da Integração</p>
-                      <h4 className="text-sm font-bold text-slate-900">PRONTO PARA CONEXÃO</h4>
+                  {/* Hero Section */}
+                  <div className="text-center space-y-4">
+                    <div className="w-20 h-20 bg-[#3BC671]/10 rounded-[2.5rem] flex items-center justify-center mx-auto mb-6">
+                      <svg className="w-10 h-10 text-[#3BC671]" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
                     </div>
-                    <div className="w-10 h-10 bg-[#3BC671] rounded-2xl flex items-center justify-center text-black">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    <h3 className="text-2xl font-black text-slate-900 leading-tight">Conecte sua Inteligência ao WhatsApp</h3>
+                    <p className="text-sm text-slate-500 font-medium px-4">Integração nativa via Meta Cloud API. Seus clientes atendidos 24/7 sem interrupções.</p>
+                  </div>
+
+                  {/* Connect Steps */}
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 flex items-start gap-4">
+                      <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-black text-xs shrink-0">1</div>
+                      <div className="space-y-1">
+                        <h4 className="font-bold text-slate-900 text-sm">Login com Facebook</h4>
+                        <p className="text-[11px] text-slate-500 font-medium leading-relaxed">Conecte sua conta empresarial e selecione o número de telefone.</p>
+                      </div>
+                    </div>
+                    <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 flex items-start gap-4">
+                      <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-black text-xs shrink-0">2</div>
+                      <div className="space-y-1">
+                        <h4 className="font-bold text-slate-900 text-sm">Permissões</h4>
+                        <p className="text-[11px] text-slate-500 font-medium leading-relaxed">Dê permissão para que o seu agente possa ler e enviar mensagens.</p>
+                      </div>
+                    </div>
+                    <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 flex items-start gap-4">
+                      <div className="w-8 h-8 rounded-full bg-[#3BC671] text-black flex items-center justify-center font-black text-xs shrink-0">3</div>
+                      <div className="space-y-1">
+                        <h4 className="font-bold text-slate-900 text-sm">Pronto para rodar!</h4>
+                        <p className="text-[11px] text-slate-500 font-medium leading-relaxed">Sua IA assume o atendimento automaticamente em tempo real.</p>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Main Config */}
-                  <div className="space-y-6">
-                    <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 space-y-4">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="w-8 h-8 bg-slate-900 rounded-xl flex items-center justify-center text-[#3BC671]">
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
-                        </div>
-                        <p className="text-[11px] font-black text-slate-900 uppercase tracking-tight">Identificador do Número</p>
-                      </div>
+                  {/* Main Action Component */}
+                  <div className="pt-4 space-y-4">
+                    <button
+                      onClick={() => {
+                        // Placeholer para launchWhatsAppSignup()
+                        console.log("Iniciando Embedded Signup...");
+                        alert("Preparando login seguro com Meta...");
+                      }}
+                      className="w-full bg-[#1877F2] text-white font-black text-sm py-5 rounded-[2rem] hover:brightness-110 active:scale-[0.98] transition-all shadow-xl shadow-blue-500/20 flex items-center justify-center gap-3 uppercase tracking-widest"
+                    >
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.248h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
+                      Conectar com Facebook
+                    </button>
 
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number ID</label>
-                        <input
-                          value={metaPhoneNumberId}
-                          onChange={e => setMetaPhoneNumberId(e.target.value)}
-                          type="text"
-                          placeholder="Ex: 104592837..."
-                          className="w-full bg-white border border-slate-200 rounded-2xl p-4 outline-none focus:border-[#3BC671] focus:ring-4 focus:ring-[#3BC671]/10 transition-all font-mono text-sm font-bold text-slate-700"
-                        />
-                        <p className="text-[10px] text-slate-500 font-bold ml-1 flex items-center gap-2">
-                          <svg className="w-3 h-3 text-[#3BC671]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                          Obtenha este ID no Painel Meta Developer.
-                        </p>
-                      </div>
-                    </div>
+                    <p className="text-[10px] text-slate-400 font-bold text-center uppercase tracking-widest">
+                      Conexão segura via Meta Business Partners
+                    </p>
+                  </div>
 
-                    <div className="p-6 bg-slate-900 rounded-[2rem] space-y-4 shadow-xl">
-                      <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">URL do Webhook</label>
-                        <span className="px-2 py-0.5 bg-[#3BC671] text-black text-[8px] font-black rounded-full">OBRIGATÓRIO</span>
+                  {/* Benefits Banner */}
+                  <div className="bg-slate-900 p-8 rounded-[2.5rem] relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#3BC671] blur-[80px] opacity-10 group-hover:opacity-20 transition-opacity"></div>
+                    <div className="relative z-10 space-y-4">
+                      <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#3BC671] animate-pulse"></span>
+                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Tecnologia Multi-Agent</p>
                       </div>
-                      <div className="flex gap-2">
-                        <input
-                          readOnly
-                          value={typeof window !== 'undefined' ? `${window.location.origin}/api/v1/webhooks/whatsapp` : ''}
-                          className="flex-1 bg-white/5 border border-white/10 rounded-xl p-4 text-[11px] text-[#3BC671] font-mono outline-none"
-                        />
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(`${window.location.origin}/api/v1/webhooks/whatsapp`);
-                            alert("Copiado!");
-                          }}
-                          className="bg-white/10 hover:bg-[#3BC671] hover:text-black px-4 rounded-xl text-white transition-all text-[10px] font-black uppercase"
-                        >
-                          Copiar
-                        </button>
-                      </div>
-                      <p className="text-[9px] text-slate-500 font-bold leading-relaxed">
-                        Configure esta URL no seu App do Meta para que a Eleven Chat processe as mensagens em tempo real.
+                      <h4 className="text-white font-black text-lg leading-tight uppercase italic">Coexistência Perfeita</h4>
+                      <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+                        Continue usando seu WhatsApp Web ou Celular normalmente. A IA trabalha em conjunto, sem desconectar você.
                       </p>
                     </div>
-
-                    <button
-                      onClick={handleSaveNativeConfig}
-                      disabled={isSavingNative || !metaPhoneNumberId}
-                      className="w-full bg-[#3BC671] text-black font-black text-xs py-5 rounded-[2rem] hover:brightness-110 active:scale-[0.98] transition-all shadow-xl shadow-green-500/20 disabled:opacity-50 flex items-center justify-center gap-3 uppercase tracking-widest"
-                    >
-                      {isSavingNative ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-                          Salvando...
-                        </>
-                      ) : 'Confirmar Ativação Nativa'}
-                    </button>
                   </div>
+
                 </div>
               </div>
 
