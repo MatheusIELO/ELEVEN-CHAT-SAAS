@@ -123,18 +123,28 @@ export default function DashboardPage() {
 
   const startRecording = async () => {
     try {
+      // Pedir permissão explicitamente
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+
+      // WhatsApp usa preferencialmente opus
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm; codecs=opus')
+        ? 'audio/webm; codecs=opus'
+        : 'audio/webm';
+
+      const recorder = new MediaRecorder(stream, { mimeType });
       const chunks: Blob[] = [];
 
-      recorder.ondataavailable = (e) => chunks.push(e.data);
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+
       recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const blob = new Blob(chunks, { type: mimeType });
         setAudioBlob(blob);
         setAudioUrl(URL.createObjectURL(blob));
       };
 
-      recorder.start();
+      recorder.start(100); // Coletar chunks a cada 100ms
       setMediaRecorder(recorder);
       setIsRecording(true);
       setRecordingDuration(0);
@@ -146,6 +156,7 @@ export default function DashboardPage() {
       (recorder as any)._interval = interval;
     } catch (err) {
       console.error("Erro ao acessar microfone:", err);
+      alert("Para gravar áudio, você precisa permitir o acesso ao microfone no seu navegador.");
     }
   };
 
@@ -153,8 +164,19 @@ export default function DashboardPage() {
     if (mediaRecorder && isRecording) {
       mediaRecorder.stop();
       setIsRecording(false);
-      clearInterval((mediaRecorder as any)._interval);
+      if ((mediaRecorder as any)._interval) clearInterval((mediaRecorder as any)._interval);
       mediaRecorder.stream.getTracks().forEach(track => track.stop());
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      setIsRecording(false);
+      if ((mediaRecorder as any)._interval) clearInterval((mediaRecorder as any)._interval);
+      mediaRecorder.stream.getTracks().forEach(track => track.stop());
+      setAudioBlob(null);
+      setAudioUrl(null);
     }
   };
 
@@ -1606,14 +1628,28 @@ ${prompt}
                     <div className="absolute inset-0 bg-slate-900 rounded-[1.5rem] flex items-center justify-between px-6 z-10 animate-in fade-in zoom-in-95">
                       <div className="flex items-center gap-3">
                         <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                        <span className="text-[10px] font-black text-white uppercase tracking-widest">Gravando... {Math.floor(recordingDuration / 60)}:{String(recordingDuration % 60).padStart(2, '0')}</span>
+                        <span className="text-[10px] font-black text-white uppercase tracking-widest min-w-[80px]">
+                          {Math.floor(recordingDuration / 60)}:{String(recordingDuration % 60).padStart(2, '0')}
+                        </span>
+                        <div className="h-1 w-20 bg-white/10 rounded-full overflow-hidden">
+                          <div className="h-full bg-red-500 animate-pulse" style={{ width: '100%' }}></div>
+                        </div>
                       </div>
-                      <button
-                        onClick={stopRecording}
-                        className="px-4 py-2 bg-[#3BC671] text-black rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all"
-                      >
-                        Parar
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={cancelRecording}
+                          className="p-2 text-slate-400 hover:text-white transition-all"
+                        >
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                        <button
+                          onClick={stopRecording}
+                          className="bg-[#3BC671] text-black px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all flex items-center gap-2"
+                        >
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
+                          Concluir
+                        </button>
+                      </div>
                     </div>
                   )}
 
