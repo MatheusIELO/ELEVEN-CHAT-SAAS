@@ -70,6 +70,7 @@ export default function DashboardPage() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [recordingDuration, setRecordingDuration] = useState(0);
+  const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
 
   // WhatsApp Connection State
   const [isWADrawerOpen, setIsWADrawerOpen] = useState(false);
@@ -187,6 +188,14 @@ export default function DashboardPage() {
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
+  };
+
+  const playPreview = () => {
+    if (!audioUrl) return;
+    const audio = new Audio(audioUrl);
+    setIsPreviewPlaying(true);
+    audio.play();
+    audio.onended = () => setIsPreviewPlaying(false);
   };
 
   const sendAudioMessage = async () => {
@@ -1600,10 +1609,21 @@ ${prompt}
                 {audioUrl && !isRecording && (
                   <div className="mb-4 p-3 bg-slate-900 rounded-3xl flex items-center justify-between animate-in slide-in-from-bottom-2">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[#3BC671] flex items-center justify-center">
-                        <svg className="w-4 h-4 text-black" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                      </div>
-                      <span className="text-[10px] font-black text-white uppercase tracking-widest">Áudio Gravado</span>
+                      <button
+                        onClick={playPreview}
+                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isPreviewPlaying ? 'bg-white text-black' : 'bg-[#3BC671] text-black hover:brightness-110'}`}
+                      >
+                        {isPreviewPlaying ? (
+                          <div className="flex gap-1">
+                            <div className="w-1 h-3 bg-black rounded-full animate-bounce"></div>
+                            <div className="w-1 h-3 bg-black rounded-full animate-bounce delay-75"></div>
+                            <div className="w-1 h-3 bg-black rounded-full animate-bounce delay-150"></div>
+                          </div>
+                        ) : (
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                        )}
+                      </button>
+                      <span className="text-[10px] font-black text-white uppercase tracking-widest">Ouvir Gravação</span>
                     </div>
                     <div className="flex gap-2">
                       <button

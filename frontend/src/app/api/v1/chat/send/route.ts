@@ -15,27 +15,18 @@ export async function POST(req: Request) {
             try {
                 const OpenAI = (await import('openai')).default;
                 const openai = new OpenAI({ apiKey: openaiApiKey });
-                const fs = await import('fs');
-                const path = await import('path');
-                const os = await import('os');
 
                 const buffer = Buffer.from(audio.split(',')[1] || audio, 'base64');
-                const tempDir = os.tmpdir();
-                const tempFile = path.join(tempDir, `upload_${Date.now()}.webm`);
-                fs.writeFileSync(tempFile, buffer);
-
                 const transcription = await openai.audio.transcriptions.create({
-                    file: fs.createReadStream(tempFile),
+                    file: await OpenAI.toFile(buffer, 'audio.webm'),
                     model: "whisper-1",
                 });
 
                 finalMessage = transcription.text;
                 userTranscript = transcription.text;
-
-                // Cleanup
-                fs.unlinkSync(tempFile);
+                console.log("Transcrição concluída:", finalMessage);
             } catch (err) {
-                console.error("Transcription Error:", err);
+                console.error("Transcription Error détaillée:", err);
                 // Fallback to original message if transcription fails
             }
         }
@@ -49,7 +40,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
         }
 
-        const response = await getElevenLabsAgentResponse(agentId, finalMessage, apiKey, mode || 'text', history || []);
+        const response = await getElevenLabsAgentResponse(agentId, finalMessage || " ", apiKey, mode || 'text', history || []);
 
         return NextResponse.json({
             text: response.text,
