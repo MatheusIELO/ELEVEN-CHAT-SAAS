@@ -30,7 +30,7 @@ export default function DashboardPage() {
   const [area, setArea] = useState('');
   const [prompt, setPrompt] = useState('');
   const [firstMessage, setFirstMessage] = useState('');
-  const [language, setLanguage] = useState('pt');
+  const [language, setLanguage] = useState('pt-br');
   const [voiceId, setVoiceId] = useState('21m00Tcm4TlvDq8ikWAM');
   const [drawerStep, setDrawerStep] = useState(1);
 
@@ -280,7 +280,7 @@ export default function DashboardPage() {
     setArea('');
     setPrompt('');
     setFirstMessage('Olá! Como posso ajudar você hoje?');
-    setLanguage('pt');
+    setLanguage('pt-br');
     setEntities([
       { id: 1, name: 'customer_name', description: 'Nome completo do cliente' },
       { id: 2, name: 'customer_email', description: 'E-mail de contato' },
@@ -313,7 +313,8 @@ export default function DashboardPage() {
     setArea(agent.area || '');
     setPrompt(agent.prompt_user_part || agent.prompt || ''); // Try to get the raw user part if we stored it
     setFirstMessage(agent.first_message || '');
-    setLanguage(agent.language || 'pt');
+    // Mapping legacy 'pt' to 'pt-br' for UI consistency if it was Brazil
+    setLanguage(agent.language === 'pt' ? 'pt-br' : (agent.language || 'pt-br'));
     setVoiceId(agent.voice_id || '21m00Tcm4TlvDq8ikWAM');
     setEntities(agent.entities || [
       { id: 1, name: 'customer_name', description: 'Nome completo do cliente' },
