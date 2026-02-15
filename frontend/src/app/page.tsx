@@ -65,6 +65,11 @@ export default function DashboardPage() {
 
   const [showTest, setShowTest] = useState(false);
   const [testMode, setTestMode] = useState<'text' | 'audio'>('text');
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [recordingDuration, setRecordingDuration] = useState(0);
 
   // WhatsApp Connection State
   const [isWADrawerOpen, setIsWADrawerOpen] = useState(false);
@@ -113,6 +118,98 @@ export default function DashboardPage() {
       });
     } catch (err) {
       console.error("Erro ao reproduzir áudio:", err);
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+
+      recorder.ondataavailable = (e) => chunks.push(e.data);
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        setAudioBlob(blob);
+        setAudioUrl(URL.createObjectURL(blob));
+      };
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+      setRecordingDuration(0);
+
+      const interval = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+
+      (recorder as any)._interval = interval;
+    } catch (err) {
+      console.error("Erro ao acessar microfone:", err);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      setIsRecording(false);
+      clearInterval((mediaRecorder as any)._interval);
+      mediaRecorder.stream.getTracks().forEach(track => track.stop());
+    }
+  };
+
+  const translateAudioToBase64 = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  const sendAudioMessage = async () => {
+    if (!audioBlob || isSendingMessage) return;
+
+    setIsSendingMessage(true);
+    const audioBase64 = await translateAudioToBase64(audioBlob);
+
+    // Clear preview
+    const tempUrl = audioUrl;
+    setAudioBlob(null);
+    setAudioUrl(null);
+
+    try {
+      const res = await fetch(`${API_PREFIX}/chat/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agentId,
+          audio: audioBase64,
+          mode: 'audio',
+          history: chatMessages.slice(-10).map(m => ({ sender: m.sender, text: m.text }))
+        })
+      });
+      const data = await res.json();
+      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      // Use transcription from backend for the user bubble if available
+      setChatMessages(prev => [...prev, {
+        sender: 'user',
+        text: data.userTranscript || "🎤 Mensagem de voz",
+        timestamp: now
+      }]);
+
+      const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setChatMessages(prev => [...prev, { sender: 'bot', text: data.text || "Erro ao processar.", timestamp: replyTime }]);
+
+      if (data.audioChunks) {
+        playAudio(data.audioChunks);
+      }
+    } catch (err) {
+      console.error("Erro ao enviar áudio:", err);
+    } finally {
+      setIsSendingMessage(false);
+      if (tempUrl) URL.revokeObjectURL(tempUrl);
     }
   };
 
@@ -1477,7 +1574,58 @@ ${prompt}
 
               {/* Input Area */}
               <div className="p-4 sm:p-8 bg-white border-t border-slate-50 shrink-0">
-                <div className="flex items-center gap-3 sm:gap-4 bg-slate-50 border border-slate-200 rounded-full sm:rounded-[1.5rem] p-2 pr-2 sm:pr-3 focus-within:border-[#3BC671] transition-all">
+                {/* Audio Preview Bar */}
+                {audioUrl && !isRecording && (
+                  <div className="mb-4 p-3 bg-slate-900 rounded-3xl flex items-center justify-between animate-in slide-in-from-bottom-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-[#3BC671] flex items-center justify-center">
+                        <svg className="w-4 h-4 text-black" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                      </div>
+                      <span className="text-[10px] font-black text-white uppercase tracking-widest">Áudio Gravado</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { setAudioBlob(null); setAudioUrl(null); }}
+                        className="p-2 hover:bg-white/10 rounded-xl transition-all"
+                      >
+                        <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                      </button>
+                      <button
+                        onClick={sendAudioMessage}
+                        disabled={isSendingMessage}
+                        className="px-4 py-2 bg-[#3BC671] text-black rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all disabled:opacity-50"
+                      >
+                        {isSendingMessage ? 'Enviando...' : 'Enviar Áudio'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3 sm:gap-4 bg-slate-50 border border-slate-200 rounded-full sm:rounded-[1.5rem] p-2 pr-2 sm:pr-3 focus-within:border-[#3BC671] transition-all relative">
+                  {isRecording && (
+                    <div className="absolute inset-0 bg-slate-900 rounded-[1.5rem] flex items-center justify-between px-6 z-10 animate-in fade-in zoom-in-95">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                        <span className="text-[10px] font-black text-white uppercase tracking-widest">Gravando... {Math.floor(recordingDuration / 60)}:{String(recordingDuration % 60).padStart(2, '0')}</span>
+                      </div>
+                      <button
+                        onClick={stopRecording}
+                        className="px-4 py-2 bg-[#3BC671] text-black rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all"
+                      >
+                        Parar
+                      </button>
+                    </div>
+                  )}
+
+                  {testMode === 'audio' && (
+                    <button
+                      onClick={isRecording ? stopRecording : startRecording}
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isRecording ? 'bg-red-500 text-white' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" strokeLinecap="round" strokeLinejoin="round" /><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                    </button>
+                  )}
+
                   <input
                     value={chatInput}
                     onChange={e => setChatInput(e.target.value)}
@@ -1514,8 +1662,9 @@ ${prompt}
                       }
                     }}
                     type="text"
-                    placeholder="Envie um comando para teste de fogo..."
-                    className="flex-1 bg-transparent px-4 py-2 text-sm font-bold text-slate-700 outline-none placeholder:text-slate-400"
+                    disabled={isRecording}
+                    placeholder={testMode === 'audio' ? "Fale ou digite algo..." : "Envie um comando para teste de fogo..."}
+                    className="flex-1 bg-transparent px-4 py-2 text-sm font-bold text-slate-700 outline-none placeholder:text-slate-400 disabled:opacity-30"
                   />
                   <button
                     onClick={async () => {
@@ -1550,7 +1699,7 @@ ${prompt}
                         }
                       }
                     }}
-                    disabled={isSendingMessage}
+                    disabled={isSendingMessage || isRecording || !chatInput.trim()}
                     className="bg-[#3BC671] text-black w-10 h-10 rounded-xl flex items-center justify-center hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-green-500/10 disabled:opacity-50"
                   >
                     {isSendingMessage ? (

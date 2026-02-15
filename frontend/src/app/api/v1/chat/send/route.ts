@@ -4,10 +4,44 @@ import { getElevenLabsAgentResponse } from '@/lib/elevenlabs';
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const { agentId, message, history, mode } = body;
+        const { agentId, message, history, mode, audio } = body;
+        const openaiApiKey = process.env.OPENAI_API_KEY;
 
-        if (!agentId || !message) {
-            return NextResponse.json({ error: 'Agent ID and Message are required' }, { status: 400 });
+        let finalMessage = message;
+        let userTranscript = "";
+
+        // Handle Audio Transcription if audio is provided
+        if (audio && openaiApiKey) {
+            try {
+                const OpenAI = (await import('openai')).default;
+                const openai = new OpenAI({ apiKey: openaiApiKey });
+                const fs = await import('fs');
+                const path = await import('path');
+                const os = await import('os');
+
+                const buffer = Buffer.from(audio.split(',')[1] || audio, 'base64');
+                const tempDir = os.tmpdir();
+                const tempFile = path.join(tempDir, `upload_${Date.now()}.webm`);
+                fs.writeFileSync(tempFile, buffer);
+
+                const transcription = await openai.audio.transcriptions.create({
+                    file: fs.createReadStream(tempFile),
+                    model: "whisper-1",
+                });
+
+                finalMessage = transcription.text;
+                userTranscript = transcription.text;
+
+                // Cleanup
+                fs.unlinkSync(tempFile);
+            } catch (err) {
+                console.error("Transcription Error:", err);
+                // Fallback to original message if transcription fails
+            }
+        }
+
+        if (!agentId || (!finalMessage && !audio)) {
+            return NextResponse.json({ error: 'Agent ID and Message/Audio are required' }, { status: 400 });
         }
 
         const apiKey = process.env.ELEVEN_API_KEY || '';
@@ -15,11 +49,12 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
         }
 
-        const response = await getElevenLabsAgentResponse(agentId, message, apiKey, mode || 'text', history || []);
+        const response = await getElevenLabsAgentResponse(agentId, finalMessage, apiKey, mode || 'text', history || []);
 
         return NextResponse.json({
             text: response.text,
-            audioChunks: response.audioChunks
+            audioChunks: response.audioChunks,
+            userTranscript: userTranscript
         });
     } catch (error: any) {
         console.error('Chat Error:', error);
