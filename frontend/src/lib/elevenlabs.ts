@@ -35,6 +35,7 @@ export async function getElevenLabsAgentResponse(
         const ws = new WebSocket(wsUrl, { headers: { "xi-api-key": apiKey } });
 
         let fullResponse = "";
+        let audioChunks: string[] = [];
         let isDone = false;
         let hasSentInput = false;
 
@@ -53,7 +54,7 @@ export async function getElevenLabsAgentResponse(
                     agent: {
                         first_message: " "
                     },
-                    conversation: { text_only: true }
+                    conversation: { text_only: replyMode === 'text' }
                 }
             };
             ws.send(JSON.stringify(initiation));
@@ -105,7 +106,13 @@ export async function getElevenLabsAgentResponse(
                         isDone = true;
                         clearTimeout(timeout);
                         ws.close();
-                        resolve({ text: fullResponse.trim() });
+                        resolve({ text: fullResponse.trim(), audioChunks });
+                    }
+                }
+
+                if (event.type === "audio_event") {
+                    if (event.audio_event?.audio_base_64) {
+                        audioChunks.push(event.audio_event.audio_base_64);
                     }
                 }
 

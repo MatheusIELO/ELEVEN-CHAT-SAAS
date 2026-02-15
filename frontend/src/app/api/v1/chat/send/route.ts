@@ -4,7 +4,7 @@ import { getElevenLabsAgentResponse } from '@/lib/elevenlabs';
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const { agentId, message, history } = body;
+        const { agentId, message, history, mode } = body;
 
         if (!agentId || !message) {
             return NextResponse.json({ error: 'Agent ID and Message are required' }, { status: 400 });
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
         }
 
-        const response = await getElevenLabsAgentResponse(agentId, message, apiKey, 'text', history || []);
+        const response = await getElevenLabsAgentResponse(agentId, message, apiKey, mode || 'text', history || []);
 
         return NextResponse.json({
             text: response.text,

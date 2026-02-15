@@ -64,6 +64,7 @@ export default function DashboardPage() {
   const [uploadingFile, setUploadingFile] = useState(false);
 
   const [showTest, setShowTest] = useState(false);
+  const [testMode, setTestMode] = useState<'text' | 'audio'>('text');
 
   // WhatsApp Connection State
   const [isWADrawerOpen, setIsWADrawerOpen] = useState(false);
@@ -90,6 +91,30 @@ export default function DashboardPage() {
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'bot', text: string, timestamp: string }>>([]);
   const [chatInput, setChatInput] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
+
+  const playAudio = async (chunks: string[]) => {
+    if (!chunks || chunks.length === 0) return;
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const buffers = await Promise.all(chunks.map(async b64 => {
+        const bin = atob(b64);
+        const arr = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+        return audioContext.decodeAudioData(arr.buffer);
+      }));
+
+      let startTime = audioContext.currentTime;
+      buffers.forEach(buffer => {
+        const source = audioContext.createBufferSource();
+        source.buffer = buffer;
+        source.connect(audioContext.destination);
+        source.start(startTime);
+        startTime += buffer.duration;
+      });
+    } catch (err) {
+      console.error("Erro ao reproduzir áudio:", err);
+    }
+  };
 
   // Sensei States
   const [senseiInput, setSenseiInput] = useState('');
@@ -1400,6 +1425,24 @@ ${prompt}
                 </button>
               </div>
 
+              {/* Test Mode Selector */}
+              <div className="px-8 py-2 bg-slate-50/50 border-b border-slate-100 shrink-0">
+                <div className="flex bg-slate-200/50 p-1 rounded-2xl w-fit">
+                  <button
+                    onClick={() => setTestMode('text')}
+                    className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${testMode === 'text' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    📝 Texto
+                  </button>
+                  <button
+                    onClick={() => setTestMode('audio')}
+                    className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${testMode === 'audio' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    🎙️ Áudio
+                  </button>
+                </div>
+              </div>
+
               {/* Chat Area */}
               <div className="flex-1 overflow-y-auto p-8 bg-[#F8FAFC] space-y-6 custom-scrollbar">
                 {chatMessages.length === 0 ? (
@@ -1453,12 +1496,16 @@ ${prompt}
                             body: JSON.stringify({
                               agentId,
                               message: text,
+                              mode: testMode,
                               history: chatMessages.slice(-10).map(m => ({ sender: m.sender, text: m.text }))
                             })
                           });
                           const data = await res.json();
                           const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                           setChatMessages(prev => [...prev, { sender: 'bot', text: data.text || "Erro ao processar.", timestamp: replyTime }]);
+                          if (testMode === 'audio' && data.audioChunks) {
+                            playAudio(data.audioChunks);
+                          }
                         } catch (err) {
                           setChatMessages(prev => [...prev, { sender: 'bot', text: "Erro de conexão.", timestamp: now }]);
                         } finally {
@@ -1486,12 +1533,16 @@ ${prompt}
                             body: JSON.stringify({
                               agentId,
                               message: text,
+                              mode: testMode,
                               history: chatMessages.slice(-10).map(m => ({ sender: m.sender, text: m.text }))
                             })
                           });
                           const data = await res.json();
                           const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                           setChatMessages(prev => [...prev, { sender: 'bot', text: data.text || "Erro ao processar.", timestamp: replyTime }]);
+                          if (testMode === 'audio' && data.audioChunks) {
+                            playAudio(data.audioChunks);
+                          }
                         } catch (err) {
                           setChatMessages(prev => [...prev, { sender: 'bot', text: "Erro de conexão.", timestamp: now }]);
                         } finally {
