@@ -1062,14 +1062,20 @@ ${prompt}
                         ].map(lang => (
                           <button
                             key={lang.id}
+                            disabled={!!editingAgentId}
                             onClick={() => setLanguage(lang.id)}
-                            className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all gap-2 ${language === lang.id ? 'border-[#3BC671] bg-[#3BC671]/5 text-slate-900' : 'border-slate-100 bg-white text-slate-400 hover:border-slate-200'}`}
+                            className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all gap-2 ${language === lang.id ? 'border-[#3BC671] bg-[#3BC671]/5 text-slate-900' : 'border-slate-100 bg-white text-slate-400 hover:border-slate-200'} ${editingAgentId ? 'opacity-50 cursor-not-allowed' : ''}`}
                           >
                             <span className="text-xl">{lang.icon}</span>
                             <span className="text-[10px] font-black uppercase tracking-widest">{lang.label}</span>
                           </button>
                         ))}
                       </div>
+                      {editingAgentId && (
+                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-2 bg-slate-50 p-2 rounded-lg text-center border border-slate-100 italic">
+                          O idioma mestre por ser nativo não pode ser alterado após a criação na ElevenLabs.
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}

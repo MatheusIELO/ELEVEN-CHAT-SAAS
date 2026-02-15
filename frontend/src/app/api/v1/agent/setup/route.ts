@@ -38,10 +38,9 @@ export async function POST(req: Request) {
                         
                         CONTEXTO DA EMPRESA:
                         ${setup.prompt}`,
-                        llm: "gemini-1.5-flash"
                     },
                     first_message: " ", // Forçar espaço para estabilidade
-                    language: setup.language || "pt-br"
+                    language: (setup.language || "pt-br").substring(0, 2)
                 },
                 tts: {
                     model_id: "eleven_flash_v2_5",
