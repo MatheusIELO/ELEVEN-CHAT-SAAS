@@ -1755,7 +1755,6 @@ ${prompt}
                         </div>
                       </div>
                     ))}
-                    <div ref={chatEndRef} />
                   </>
                 )}
                 {isSendingMessage && (
@@ -1771,6 +1770,7 @@ ${prompt}
                     </div>
                   </div>
                 )}
+                <div ref={chatEndRef} />
               </div>
 
               {/* Input Area */}
