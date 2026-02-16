@@ -209,11 +209,20 @@ export default function DashboardPage() {
   const sendAudioMessage = async () => {
     if (!audioBlob || isSendingMessage) return;
 
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    // Adicionar mensagem do usuário IMEDIATAMENTE para UX e Scroll
+    setChatMessages(prev => [...prev, {
+      sender: 'user',
+      text: "🎤 Mensagem de voz...",
+      timestamp: now,
+      isAudio: true
+    }]);
+
     setIsSendingMessage(true);
     const audioBase64 = await translateAudioToBase64(audioBlob);
 
-    // Clear preview
-    const tempUrl = audioUrl;
+    // Limpar preview
     setAudioBlob(null);
     setAudioUrl(null);
 
@@ -228,33 +237,44 @@ export default function DashboardPage() {
           history: chatMessages.slice(-10).map(m => ({ sender: m.sender, text: m.text }))
         })
       });
-      const data = await res.json();
-      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-      // Use transcription from backend for the user bubble if available
-      setChatMessages(prev => [...prev, {
-        sender: 'user',
-        text: data.userTranscript || "🎤 Mensagem de voz",
-        timestamp: now,
-        isAudio: true
-      }]);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro no processamento");
 
       const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      // Atualizar a última mensagem do usuário com a transcrição se existir
+      if (data.userTranscript) {
+        setChatMessages(prev => {
+          const newMessages = [...prev];
+          const lastUserIndex = [...newMessages].reverse().findIndex(m => m.sender === 'user');
+          if (lastUserIndex !== -1) {
+            const index = newMessages.length - 1 - lastUserIndex;
+            newMessages[index].text = data.userTranscript;
+          }
+          return newMessages;
+        });
+      }
+
       setChatMessages(prev => [...prev, {
         sender: 'bot',
-        text: data.text || "Erro ao processar.",
+        text: data.text || "Sem resposta em texto.",
         timestamp: replyTime,
         isAudio: true
       }]);
 
-      if (data.audioChunks) {
+      if (data.audioChunks && data.audioChunks.length > 0) {
         playAudio(data.audioChunks);
       }
-    } catch (err) {
-      console.error("Erro ao enviar áudio:", err);
+    } catch (err: any) {
+      alert(`Erro no áudio: ${err.message}`);
+      setChatMessages(prev => [...prev, {
+        sender: 'bot',
+        text: "Desculpe, houve um erro ao processar seu áudio.",
+        timestamp: now
+      }]);
     } finally {
       setIsSendingMessage(false);
-      if (tempUrl) URL.revokeObjectURL(tempUrl);
     }
   };
 

@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getElevenLabsAgentResponse, generateSpeech } from '@/lib/elevenlabs';
 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60; // 60 segundos para processamento de áudio
+
 export async function POST(req: Request) {
     try {
         const body = await req.json();
@@ -11,16 +14,14 @@ export async function POST(req: Request) {
 
         let finalMessage = message;
         let userTranscript = "";
-        let transcriptionError = null;
 
-        // 1. Transcribe Audio (if provided)
+        // 1. Transcrever Áudio se fornecido
         if (audio && openaiApiKey) {
             try {
-                console.log("[ChatRoute] Transcribing with OpenAI...");
+                console.log("[ChatRoute] Transcrevendo com OpenAI Whisper...");
                 const OpenAI = (await import('openai')).default;
                 const openai = new OpenAI({ apiKey: openaiApiKey });
 
-                // Check for base64 header
                 const base64Data = audio.includes(',') ? audio.split(',')[1] : audio;
                 const buffer = Buffer.from(base64Data, 'base64');
 
@@ -31,13 +32,11 @@ export async function POST(req: Request) {
 
                 finalMessage = transcription.text;
                 userTranscript = transcription.text;
-                console.log(`[ChatRoute] Transcript: "${finalMessage}"`);
+                console.log(`[ChatRoute] Transcrição: "${finalMessage}"`);
             } catch (err: any) {
-                console.error("[ChatRoute] Transcription Failed:", err);
-                transcriptionError = err.message;
-                // If transcription fails, we cannot proceed with a meaningful voice query
+                console.error("[ChatRoute] Erro na Transcrição:", err);
                 return NextResponse.json({
-                    error: "Falha na transcrição do áudio",
+                    error: "Falha na transcrição do seu áudio.",
                     details: err.message
                 }, { status: 400 });
             }
@@ -52,24 +51,12 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Chave API ElevenLabs não configurada.' }, { status: 500 });
         }
 
-        // 2. Get Response from ElevenLabs Conversational AI
+        // 2. Obter resposta da ElevenLabs
         try {
-            console.log(`[ChatRoute] Connecting to ElevenLabs Agent ${agentId}...`);
+            console.log(`[ChatRoute] Conectando ao Agente ${agentId}...`);
             const response = await getElevenLabsAgentResponse(agentId, finalMessage || " ", apiKey, mode || 'text', history || []);
 
-            console.log(`[ChatRoute] ElevenLabs Response: TextLen=${response.text.length}, AudioChunks=${response.audioChunks?.length || 0}`);
-
-            // Fallback: If mode is audio but no audio chunks received (and text exists), ensure we have audio
-            // This handles cases where WS might have negotiated text-only or failed to stream audio
-            if (mode === 'audio' && (!response.audioChunks || response.audioChunks.length === 0) && response.text) {
-                console.log("[ChatRoute] Warning: No audio chunks from WS. Generating fallback TTS.");
-                /* 
-                   Optional: Use standard TTS if connection was text-only or dropped audio.
-                   Note: We'd need a voice ID. Since we don't have the agent's voice ID easily available here 
-                   without another lookup, we might skip this or use a default.
-                   For now, we will return what we have, but log strictly.
-                */
-            }
+            console.log(`[ChatRoute] Resposta ElevenLabs: Texto=${response.text.length} chars, Chunks=${response.audioChunks?.length || 0}`);
 
             return NextResponse.json({
                 text: response.text,
@@ -78,18 +65,17 @@ export async function POST(req: Request) {
             });
 
         } catch (elevenError: any) {
-            console.error("[ChatRoute] ElevenLabs Error:", elevenError);
+            console.error("[ChatRoute] Erro na ElevenLabs:", elevenError);
             return NextResponse.json({
-                error: "Erro na comunicação com ElevenLabs",
-                details: elevenError.message,
-                stack: elevenError.stack
-            }, { status: 502 }); // 502 Bad Gateway is appropriate here
+                error: "A ElevenLabs demorou a responder ou a conexão falhou.",
+                details: elevenError.message
+            }, { status: 502 });
         }
 
     } catch (fatalError: any) {
-        console.error('[ChatRoute] Fatal System Error:', fatalError);
+        console.error('[ChatRoute] Erro Fatal:', fatalError);
         return NextResponse.json({
-            error: "Erro Interno do Servidor",
+            error: "Erro Interno no Servidor.",
             details: fatalError.message
         }, { status: 500 });
     }
