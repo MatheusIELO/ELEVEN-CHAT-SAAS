@@ -101,33 +101,30 @@ export default function DashboardPage() {
 
   // Auto-scroll effect
   useEffect(() => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
+    const timer = setTimeout(() => {
+      if (chatEndRef.current) {
+        chatEndRef.current.scrollIntoView({ behavior: 'auto', block: 'end' });
+      }
+    }, 100);
+    return () => clearTimeout(timer);
   }, [chatMessages, isSendingMessage]);
 
   const playAudio = async (chunks: string[]) => {
     if (!chunks || chunks.length === 0) return;
     try {
-      // Concatenar todos os chunks em um único buffer
-      const binaryStrings = chunks.map(b64 => atob(b64));
-      const totalLength = binaryStrings.reduce((acc, str) => acc + str.length, 0);
-      const fullBuffer = new Uint8Array(totalLength);
+      // Concatenar os chunks base64 em um único Blob
+      const binaryData = chunks.map(b64 => {
+        const str = atob(b64);
+        const arr = new Uint8Array(str.length);
+        for (let i = 0; i < str.length; i++) arr[i] = str.charCodeAt(i);
+        return arr;
+      });
 
-      let offset = 0;
-      for (const bin of binaryStrings) {
-        for (let i = 0; i < bin.length; i++) {
-          fullBuffer[offset++] = bin.charCodeAt(i);
-        }
-      }
-
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const decodedBuffer = await audioContext.decodeAudioData(fullBuffer.buffer);
-
-      const source = audioContext.createBufferSource();
-      source.buffer = decodedBuffer;
-      source.connect(audioContext.destination);
-      source.start(0);
+      const blob = new Blob(binaryData, { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.play();
+      audio.onended = () => URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Erro ao reproduzir áudio:", err);
     }
@@ -1737,6 +1734,8 @@ ${prompt}
                             })
                           });
                           const data = await res.json();
+                          if (!res.ok) throw new Error(data.error || "Erro no servidor");
+
                           const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                           setChatMessages(prev => [...prev, {
                             sender: 'bot',
@@ -1747,8 +1746,9 @@ ${prompt}
                           if (testMode === 'audio' && data.audioChunks) {
                             playAudio(data.audioChunks);
                           }
-                        } catch (err) {
-                          setChatMessages(prev => [...prev, { sender: 'bot', text: "Erro de conexão.", timestamp: now }]);
+                        } catch (err: any) {
+                          alert(`Erro: ${err.message}`);
+                          setChatMessages(prev => [...prev, { sender: 'bot', text: "Erro de conexão ou processamento.", timestamp: now }]);
                         } finally {
                           setIsSendingMessage(false);
                         }
@@ -1780,6 +1780,8 @@ ${prompt}
                             })
                           });
                           const data = await res.json();
+                          if (!res.ok) throw new Error(data.error || "Erro no servidor");
+
                           const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                           setChatMessages(prev => [...prev, {
                             sender: 'bot',
@@ -1790,8 +1792,9 @@ ${prompt}
                           if (testMode === 'audio' && data.audioChunks) {
                             playAudio(data.audioChunks);
                           }
-                        } catch (err) {
-                          setChatMessages(prev => [...prev, { sender: 'bot', text: "Erro de conexão.", timestamp: now }]);
+                        } catch (err: any) {
+                          alert(`Erro: ${err.message}`);
+                          setChatMessages(prev => [...prev, { sender: 'bot', text: "Erro de conexão ou processamento.", timestamp: now }]);
                         } finally {
                           setIsSendingMessage(false);
                         }
