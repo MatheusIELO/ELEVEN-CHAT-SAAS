@@ -94,7 +94,7 @@ export default function DashboardPage() {
 
 
   // Chat Test State (WhatsApp Style)
-  const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'bot', text: string, timestamp: string, isAudio?: boolean }>>([]);
+  const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'bot', text: string, timestamp: string, isAudio?: boolean, audioSource?: string, isPlaying?: boolean }>>([]);
   const [chatInput, setChatInput] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -109,10 +109,9 @@ export default function DashboardPage() {
     return () => clearTimeout(timer);
   }, [chatMessages, isSendingMessage]);
 
-  const playAudio = async (chunks: string[]) => {
+  const playAudio = async (chunks: string[], messageIndex?: number) => {
     if (!chunks || chunks.length === 0) return;
     try {
-      // Concatenar os chunks base64 em um único Blob
       const binaryData = chunks.map(b64 => {
         const str = atob(b64);
         const arr = new Uint8Array(str.length);
@@ -123,10 +122,39 @@ export default function DashboardPage() {
       const blob = new Blob(binaryData, { type: 'audio/mpeg' });
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
+
+      if (messageIndex !== undefined) {
+        setChatMessages(prev => prev.map((m, idx) => idx === messageIndex ? { ...m, audioSource: url, isPlaying: true } : m));
+      }
+
       audio.play();
-      audio.onended = () => URL.revokeObjectURL(url);
+      audio.onended = () => {
+        if (messageIndex !== undefined) {
+          setChatMessages(prev => prev.map((m, idx) => idx === messageIndex ? { ...m, isPlaying: false } : m));
+        }
+        URL.revokeObjectURL(url);
+      };
+
+      return url;
     } catch (err) {
       console.error("Erro ao reproduzir áudio:", err);
+    }
+  };
+
+  const toggleAudioPlayback = (index: number) => {
+    const msg = chatMessages[index];
+    if (!msg.audioSource) return;
+
+    if (msg.isPlaying) {
+      // Logic to stop if globally managed or just let it finish. 
+      // Simplified: Just restart or stay as is.
+    } else {
+      const audio = new Audio(msg.audioSource);
+      setChatMessages(prev => prev.map((m, idx) => idx === index ? { ...m, isPlaying: true } : m));
+      audio.play();
+      audio.onended = () => {
+        setChatMessages(prev => prev.map((m, idx) => idx === index ? { ...m, isPlaying: false } : m));
+      };
     }
   };
 
@@ -212,11 +240,13 @@ export default function DashboardPage() {
     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     // Adicionar mensagem do usuário IMEDIATAMENTE para UX e Scroll
+    const currentAudioUrl = audioUrl; // Capturar o blob url local antes de limpar
     setChatMessages(prev => [...prev, {
       sender: 'user',
       text: "🎤 Mensagem de voz...",
       timestamp: now,
-      isAudio: true
+      isAudio: true,
+      audioSource: currentAudioUrl || undefined
     }]);
 
     setIsSendingMessage(true);
@@ -256,15 +286,25 @@ export default function DashboardPage() {
         });
       }
 
-      setChatMessages(prev => [...prev, {
-        sender: 'bot',
-        text: data.text || "Sem resposta em texto.",
-        timestamp: replyTime,
-        isAudio: true
-      }]);
-
       if (data.audioChunks && data.audioChunks.length > 0) {
-        playAudio(data.audioChunks);
+        const botMsgIndex = chatMessages.length + 1; // Estimativa do índice
+        const blobUrl = await playAudio(data.audioChunks);
+        if (blobUrl) {
+          setChatMessages(prev => [...prev, {
+            sender: 'bot',
+            text: data.text || "Sem resposta em texto.",
+            timestamp: replyTime,
+            isAudio: true,
+            audioSource: blobUrl
+          }]);
+        }
+      } else {
+        setChatMessages(prev => [...prev, {
+          sender: 'bot',
+          text: data.text || "Sem resposta em texto.",
+          timestamp: replyTime,
+          isAudio: true
+        }]);
       }
     } catch (err: any) {
       alert(`Erro no áudio: ${err.message}`);
@@ -1619,9 +1659,20 @@ ${prompt}
                         <div className={`max-w-[85%] space-y-1`}>
                           <div className={`px-6 py-4 rounded-3xl text-sm font-medium shadow-sm leading-relaxed flex items-center gap-3 ${m.sender === 'user' ? 'bg-[#3BC671] text-black rounded-tr-none' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none'}`}>
                             {m.isAudio && (
-                              <div className="w-8 h-8 rounded-full bg-black/5 flex items-center justify-center shrink-0">
-                                <svg className="w-4 h-4 text-black/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" strokeLinecap="round" strokeLinejoin="round" /><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                              </div>
+                              <button
+                                onClick={() => toggleAudioPlayback(i)}
+                                className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-all ${m.sender === 'user' ? 'bg-black/10 hover:bg-black/20' : 'bg-[#3BC671]/10 hover:bg-[#3BC671]/20'}`}
+                              >
+                                {m.isPlaying ? (
+                                  <div className="flex gap-0.5 items-center">
+                                    <div className="w-1 h-3 bg-current rounded-full animate-pulse"></div>
+                                    <div className="w-1 h-4 bg-current rounded-full animate-pulse delay-75"></div>
+                                    <div className="w-1 h-2 bg-current rounded-full animate-pulse delay-150"></div>
+                                  </div>
+                                ) : (
+                                  <svg className="w-4 h-4 text-current" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                                )}
+                              </button>
                             )}
                             <div className="flex-1">
                               {m.text}
