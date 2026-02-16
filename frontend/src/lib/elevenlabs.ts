@@ -61,10 +61,8 @@ export async function getElevenLabsAgentResponse(
 
             // Configurar áudio se necessário
             if (replyMode === 'audio') {
-                (initiation.conversation_config_override as any).tts = {
-                    voice_id: undefined, // Let agent decide voice, unless passed explicitly
-                    output_format: "mp3_44100_128" // Ensure standard MP3 format
-                };
+                // Não forçar output_format, pois pode causar conflito com as configurações do Agente
+                // e gerar erro 502 (Bad Gateway). Deixar o Agente usar seu padrão.
             } else {
                 // Ensure text-only 
                 (initiation.conversation_config_override as any).conversation = {
