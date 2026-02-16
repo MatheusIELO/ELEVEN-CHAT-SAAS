@@ -13,7 +13,7 @@ export interface ChatMessage {
 
 /**
  * getElevenLabsAgentResponse - Conecta via WebSocket ao Agente Conversacional
- * Otimizado para máxima estabilidade em ambientes serverless.
+ * Otimizado para máxima estabilidade e velocidade em ambientes serverless.
  */
 export async function getElevenLabsAgentResponse(
     agentId: string,
@@ -23,13 +23,12 @@ export async function getElevenLabsAgentResponse(
     history: ChatMessage[] = []
 ): Promise<AgentResponse> {
     return new Promise((resolve, reject) => {
-        // Parametrizar a URL para evitar cache e garantir nova sessão
         const wsUrl = `wss://api.elevenlabs.io/v1/convai/conversation?agent_id=${agentId}`;
-        console.log(`[ElevenLabs] Iniciando WebSocket: mode=${replyMode}`);
+        console.log(`[ElevenLabs] Abrindo Conexão: mode=${replyMode}`);
 
         const ws = new WebSocket(wsUrl, {
             headers: { "xi-api-key": apiKey },
-            handshakeTimeout: 10000
+            handshakeTimeout: 10000 // 10s para handshake
         });
 
         let fullResponse = "";
@@ -37,46 +36,31 @@ export async function getElevenLabsAgentResponse(
         let isDone = false;
         let hasSentInput = false;
 
-        // Timeout preventivo para não estourar os 30s do Vercel/Serverless
+        // Limite de segurança total (28s) - Próximo do limite do Vercel (30s)
         const safetyTimeout = setTimeout(() => {
             if (!isDone) {
-                console.warn("[ElevenLabs] Timeout atingido. Forçando entrega do que foi capturado.");
+                console.warn("[ElevenLabs] Timeout Crítico (28s). Finalizando conexão.");
                 isDone = true;
-                ws.close();
+                ws.terminate(); // Terminate é mais agressivo que close()
                 if (fullResponse || audioChunks.length > 0) {
-                    resolve({ text: fullResponse.trim() || "Resposta incompleta.", audioChunks });
+                    resolve({ text: fullResponse.trim() || "Resposta parcial por tempo limite.", audioChunks });
                 } else {
-                    reject(new Error("Timeout: O agente não respondeu a tempo."));
+                    reject(new Error("A ElevenLabs não respondeu a tempo (Timeout de 28s)."));
                 }
             }
-        }, 25000);
+        }, 28000);
 
         ws.on('open', () => {
-            console.log("[ElevenLabs] Conexão Aberta");
+            console.log("[ElevenLabs] WebSocket Aberto.");
 
-            // Configuração de início - Fundamental para definir se queremos áudio ou não
-            const initiation: any = {
+            const initiation = {
                 type: "conversation_initiation_client_data",
                 conversation_config_override: {
-                    agent: {
-                        first_message: " " // Espaço para não disparar fala automática indesejada
-                    },
-                    tts: {
-                        output_format: "mp3_44100_128"
-                    }
+                    agent: { first_message: " " },
+                    tts: { output_format: "mp3_44100_128" },
+                    conversation: { text_only: replyMode === 'text' }
                 }
             };
-
-            // Se o modo for áudio, garantimos que text_only esteja desativado
-            if (replyMode === 'audio') {
-                initiation.conversation_config_override.conversation = {
-                    text_only: false
-                };
-            } else {
-                initiation.conversation_config_override.conversation = {
-                    text_only: true
-                };
-            }
 
             ws.send(JSON.stringify(initiation));
         });
@@ -85,78 +69,79 @@ export async function getElevenLabsAgentResponse(
             try {
                 const event = JSON.parse(data.toString());
 
-                // Metadata recebida -> Hora de enviar a pergunta do usuário
+                // Se houver erro da API antes de começar
                 if (event.type === "conversation_initiation_metadata") {
-                    console.log("[ElevenLabs] Metadata OK. Enviando mensagem...");
+                    console.log("[ElevenLabs] Metadata OK. Enviando Mensagem.");
 
-                    let contextualizedMessage = message;
+                    // Formatar histórico para o contexto (opcional mas recomendado)
+                    let finalInput = message;
                     if (history.length > 0) {
-                        const historySnippet = history.slice(-3).map(m => `${m.sender === 'user' ? 'Usuário' : 'Assistente'}: ${m.text}`).join('\n');
-                        contextualizedMessage = `[CONTEXTO ANTERIOR]\n${historySnippet}\n\n[MENSAGEM ATUAL]\n${message}`;
+                        const past = history.slice(-5).map(h => `${h.sender === 'user' ? 'User' : 'Agent'}: ${h.text}`).join("\n");
+                        finalInput = `Histórico:\n${past}\n\nMensagem Atual: ${message}`;
                     }
 
                     ws.send(JSON.stringify({
                         type: "user_message",
-                        text: contextualizedMessage
+                        text: finalInput
                     }));
                     hasSentInput = true;
                 }
 
-                // Processar resposta de texto (pode vir em partes)
+                // Captura de Texto
                 if (event.agent_response || event.text) {
                     fullResponse += (event.agent_response || event.text || "");
                 }
-                if (event.type === "agent_chat_response_part") {
-                    fullResponse += (event.text_response_part?.text || "");
+                if (event.type === "agent_chat_response_part" && event.text_response_part) {
+                    fullResponse += event.text_response_part.text;
                 }
 
-                // Processar áudio (Chunks de base64)
+                // Captura de Áudio
                 if (event.type === "audio_event" && event.audio_event?.audio_base_64) {
                     audioChunks.push(event.audio_event.audio_base_64);
                 }
 
-                // Término da resposta do Agente
+                // Fim da resposta
                 if (event.type === "agent_response_end") {
-                    console.log(`[ElevenLabs] Sucesso: ${fullResponse.length} chars, ${audioChunks.length} audio chunks.`);
+                    console.log("[ElevenLabs] Resposta concluída com sucesso.");
                     isDone = true;
                     clearTimeout(safetyTimeout);
                     ws.close();
                     resolve({ text: fullResponse.trim(), audioChunks });
                 }
 
-                // Caso ocorra erro interno no processamento da ElevenLabs
+                // Erros de Processamento
                 if (event.type === "internal_error" || event.type === "client_event_error") {
-                    const errorMsg = event.error || event.client_event_error?.message || "Erro desconhecido ElevenLabs";
-                    console.error("[ElevenLabs] Erro no Evento:", errorMsg);
+                    const msg = event.error || "Erro interno ElevenLabs";
+                    console.error("[ElevenLabs] Erro Identificado:", msg);
                     isDone = true;
                     clearTimeout(safetyTimeout);
                     ws.close();
-                    reject(new Error(errorMsg));
+                    reject(new Error(msg));
                 }
 
             } catch (err) {
-                // Erros de parsing de frames JSON ruidosos
+                // Frames ruidosos
             }
         });
 
         ws.on('error', (err) => {
-            console.error("[ElevenLabs] WebSocket Error:", err.message);
+            console.error("[ElevenLabs] Erro de WebSocket:", err.message);
             if (!isDone) {
                 isDone = true;
                 clearTimeout(safetyTimeout);
-                reject(new Error(`Erro de conexão com ElevenLabs: ${err.message}`));
+                reject(new Error(`Erro de Conexão: ${err.message}`));
             }
         });
 
-        ws.on('close', (code, reason) => {
-            console.log(`[ElevenLabs] Conexão encerrada (${code}).`);
+        ws.on('close', (code) => {
+            console.log(`[ElevenLabs] Conexão Fechada (Código: ${code}).`);
             if (!isDone) {
                 isDone = true;
                 clearTimeout(safetyTimeout);
-                if (fullResponse || audioChunks.length > 0) {
+                if (fullResponse) {
                     resolve({ text: fullResponse.trim(), audioChunks });
                 } else {
-                    reject(new Error("Conexão fechada antes de receber resposta. Verifique as chaves e o Agente."));
+                    reject(new Error(`A conexão foi encerrada prematuramente (Código: ${code}).`));
                 }
             }
         });

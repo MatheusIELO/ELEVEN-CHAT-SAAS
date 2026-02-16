@@ -105,12 +105,12 @@ export default function DashboardPage() {
     }
   };
 
-  // Auto-scroll effect
+  // Auto-scroll effect - Mais agressivo e reativo
   useEffect(() => {
     scrollToBottom('smooth');
-    // Segundo scroll de confirmação para renderizações lentas
-    const timer = setTimeout(() => scrollToBottom('auto'), 150);
-    return () => clearTimeout(timer);
+    const t1 = setTimeout(() => scrollToBottom('smooth'), 50);
+    const t2 = setTimeout(() => scrollToBottom('auto'), 200);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [chatMessages, isSendingMessage, isRecording]);
 
   const playAudio = async (chunks: string[], messageIndex?: number) => {
