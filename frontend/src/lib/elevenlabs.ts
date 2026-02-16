@@ -37,7 +37,8 @@ export async function getElevenLabsAgentResponse(
         let hasSentInput = false;
 
         // Timeout dinâmico: texto é rápido, áudio precisa de mais tempo
-        const timeoutDuration = replyMode === 'audio' ? 25000 : 15000;
+        // Com Fluid Compute, podemos usar até 5 minutos (300s)
+        const timeoutDuration = replyMode === 'audio' ? 240000 : 30000; // 4min para áudio, 30s para texto
         console.log(`[ElevenLabs] Timeout configurado: ${timeoutDuration}ms para modo ${replyMode}`);
 
         const safetyTimeout = setTimeout(() => {
