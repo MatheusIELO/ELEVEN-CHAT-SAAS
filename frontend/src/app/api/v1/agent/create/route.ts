@@ -35,6 +35,7 @@ export async function POST(req: Request) {
                         2. Mantenha respostas curtas e escaneáveis (estilo WhatsApp). No máximo 2 ou 3 frases curtas.
                         3. Se o usuário perguntar algo que você já respondeu, tente explicar de outra forma mais clara.
                         4. Seu foco é ser útil e levar o cliente para a conversão ou resolução.
+                        5. REGRA CRÍTICA: Suas respostas devem ser CURTAS e OBJETIVAS, com NO MÁXIMO 250 CARACTERES. Seja sempre conciso.
                         
                         CONTEXTO DA EMPRESA:
                         ${setup.prompt}`,
