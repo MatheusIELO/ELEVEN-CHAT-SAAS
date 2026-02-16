@@ -222,43 +222,111 @@ export default function DashboardPage() {
     scrollToBottom('smooth');
     setTimeout(() => scrollToBottom('smooth'), 100);
 
-    // Scroll imediato ao enviar
-    setTimeout(() => scrollToBottom('smooth'), 50);
-
     try {
-      const res = await fetch(`${API_PREFIX}/chat/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          agentId,
-          message: text,
-          mode: testMode,
-          history: chatMessages.slice(-3).map(m => ({ sender: m.sender, text: m.text }))
-        })
-      });
+      // Se for modo TEXTO, usar streaming para latência zero
+      if (testMode === 'text') {
+        const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Erro no servidor");
-
-      const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-      if (testMode === 'audio' && data.audioChunks && data.audioChunks.length > 0) {
-        const blobUrl = await playAudio(data.audioChunks);
+        // Adicionar mensagem vazia do bot que será preenchida conforme o streaming
+        const botMessageIndex = chatMessages.length + 1;
         setChatMessages(prev => [...prev, {
           sender: 'bot',
-          text: data.text || "Sem resposta.",
-          timestamp: replyTime,
-          isAudio: true,
-          audioSource: blobUrl || undefined
+          text: '',
+          timestamp: replyTime
         }]);
+
+        const res = await fetch(`${API_PREFIX}/chat/stream`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agentId,
+            message: text,
+            history: chatMessages.slice(-3).map(m => ({ sender: m.sender, text: m.text }))
+          })
+        });
+
+        if (!res.ok) throw new Error('Erro no streaming');
+
+        const reader = res.body?.getReader();
+        const decoder = new TextDecoder();
+        let accumulatedText = '';
+
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6);
+                if (data === '[DONE]') break;
+
+                try {
+                  const parsed = JSON.parse(data);
+                  if (parsed.text) {
+                    accumulatedText += parsed.text;
+
+                    // Atualizar mensagem do bot em tempo real
+                    setChatMessages(prev => {
+                      const newMessages = [...prev];
+                      newMessages[botMessageIndex] = {
+                        ...newMessages[botMessageIndex],
+                        text: accumulatedText
+                      };
+                      return newMessages;
+                    });
+
+                    scrollToBottom('smooth');
+                  }
+                } catch (e) {
+                  // Ignorar erros de parse
+                }
+              }
+            }
+          }
+        }
+
         setTimeout(() => scrollToBottom('smooth'), 100);
+
       } else {
-        setChatMessages(prev => [...prev, {
-          sender: 'bot',
-          text: data.text || "Sem resposta.",
-          timestamp: replyTime,
-          isAudio: testMode === 'audio'
-        }]);
+        // Modo ÁUDIO - usar endpoint normal
+        const res = await fetch(`${API_PREFIX}/chat/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agentId,
+            message: text,
+            mode: testMode,
+            history: chatMessages.slice(-3).map(m => ({ sender: m.sender, text: m.text }))
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Erro no servidor");
+
+        const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        if (data.audioChunks && data.audioChunks.length > 0) {
+          const blobUrl = await playAudio(data.audioChunks);
+          setChatMessages(prev => [...prev, {
+            sender: 'bot',
+            text: data.text || "Sem resposta.",
+            timestamp: replyTime,
+            isAudio: true,
+            audioSource: blobUrl || undefined
+          }]);
+          setTimeout(() => scrollToBottom('smooth'), 100);
+        } else {
+          setChatMessages(prev => [...prev, {
+            sender: 'bot',
+            text: data.text || "Sem resposta.",
+            timestamp: replyTime,
+            isAudio: testMode === 'audio'
+          }]);
+        }
       }
     } catch (err: any) {
       console.error("Chat Error:", err);
