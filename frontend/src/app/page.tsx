@@ -237,24 +237,16 @@ export default function DashboardPage() {
       if (!res.ok) throw new Error(data.error || "Erro no servidor");
 
       const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      setChatMessages(prev => [...prev, {
-        sender: 'bot',
-        text: data.text || "Sem resposta.",
-        timestamp: replyTime,
-        isAudio: testMode === 'audio'
-      }]);
 
       if (testMode === 'audio' && data.audioChunks && data.audioChunks.length > 0) {
         const blobUrl = await playAudio(data.audioChunks);
-        if (blobUrl) {
-          setChatMessages(prev => [...prev, {
-            sender: 'bot',
-            text: data.text || "Sem resposta.",
-            timestamp: replyTime,
-            isAudio: true,
-            audioSource: blobUrl
-          }]);
-        }
+        setChatMessages(prev => [...prev, {
+          sender: 'bot',
+          text: data.text || "Sem resposta.",
+          timestamp: replyTime,
+          isAudio: true,
+          audioSource: blobUrl || undefined
+        }]);
       } else {
         setChatMessages(prev => [...prev, {
           sender: 'bot',
