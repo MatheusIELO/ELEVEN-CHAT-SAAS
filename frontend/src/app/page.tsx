@@ -899,7 +899,12 @@ ${prompt}
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
-        <div className="w-16 h-16 bg-[#3BC671] rounded-2xl flex items-center justify-center text-black font-black text-2xl animate-bounce shadow-2xl shadow-green-500/20 italic">11</div>
+        <div className="w-16 h-16 bg-[#3BC671] rounded-2xl flex items-center justify-center text-black font-black text-2xl shadow-2xl shadow-green-500/20 italic logo-container">
+          <span className="logo-mascot logo-auto-blink">
+            <span className="logo-eye logo-eye-left">1</span>
+            <span className="logo-eye logo-eye-right">1</span>
+          </span>
+        </div>
       </div>
     );
   }
@@ -913,7 +918,12 @@ ${prompt}
           <aside className="relative w-64 bg-[#0F1115] h-full flex flex-col animate-in slide-in-from-left duration-300">
             <div className="p-6 flex items-center justify-between border-b border-slate-800/50">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-[#3BC671] rounded-lg flex items-center justify-center text-black font-black text-sm">11</div>
+                <div className="w-8 h-8 bg-[#3BC671] rounded-lg flex items-center justify-center text-black font-black text-sm logo-container">
+                  <span className="logo-mascot">
+                    <span className="logo-eye logo-eye-left">1</span>
+                    <span className="logo-eye logo-eye-right">1</span>
+                  </span>
+                </div>
                 <span className="font-bold tracking-tight text-white text-lg">Eleven Chat</span>
               </div>
               <button onClick={() => setIsMobileMenuOpen(false)} className="text-slate-400">
@@ -955,7 +965,12 @@ ${prompt}
       {/* Sidebar Navigation - FIXED */}
       <aside className="hidden lg:flex w-64 bg-[#0F1115] text-white flex-col fixed left-0 top-0 h-screen z-50 border-r border-slate-800">
         <div className="p-6 flex items-center gap-3 border-b border-slate-800/50 mb-4">
-          <div className="w-8 h-8 bg-[#3BC671] rounded-lg flex items-center justify-center text-black font-black text-sm">11</div>
+          <div className="w-8 h-8 bg-[#3BC671] rounded-lg flex items-center justify-center text-black font-black text-sm logo-container">
+            <span className="logo-mascot">
+              <span className="logo-eye logo-eye-left">1</span>
+              <span className="logo-eye logo-eye-right">1</span>
+            </span>
+          </div>
           <span className="font-bold tracking-tight text-lg">Eleven Chat</span>
         </div>
 
@@ -1227,10 +1242,13 @@ ${prompt}
 
                       {/* Colorful Logo 11 */}
                       <div
-                        className="w-20 h-20 rounded-[2rem] flex items-center justify-center font-black text-3xl italic mb-6 shadow-lg transition-transform group-hover:scale-110"
+                        className="w-20 h-20 rounded-[2rem] flex items-center justify-center font-black text-3xl italic mb-6 shadow-lg transition-transform group-hover:scale-110 logo-container"
                         style={{ backgroundColor: `${color}15`, color: color, border: `2px solid ${color}30` }}
                       >
-                        11
+                        <span className="logo-mascot">
+                          <span className="logo-eye logo-eye-left">1</span>
+                          <span className="logo-eye logo-eye-right">1</span>
+                        </span>
                       </div>
 
                       <div className="space-y-2 mb-6 w-full">
@@ -1294,7 +1312,12 @@ ${prompt}
                 {agents.length === 0 && (
                   <div className="col-span-full py-32 bg-white rounded-[3rem] border border-slate-100 flex flex-col items-center justify-center text-center px-6 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#3BC671] to-transparent opacity-20"></div>
-                    <div className="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center font-black text-4xl italic text-slate-200 mb-8 border border-slate-100">11</div>
+                    <div className="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center font-black text-4xl italic text-slate-200 mb-8 border border-slate-100 logo-container">
+                      <span className="logo-mascot">
+                        <span className="logo-eye logo-eye-left">1</span>
+                        <span className="logo-eye logo-eye-right">1</span>
+                      </span>
+                    </div>
                     <h4 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-4">Primeira Unidade Pronta?</h4>
                     <p className="max-w-md text-sm text-slate-400 font-medium leading-relaxed mb-10">
                       Você ainda não possui agentes ativos. Inicie sua operação criando um agente especializado para seu nicho de mercado.
@@ -1312,7 +1335,7 @@ ${prompt}
           )}
 
         </div>
-      </main>
+      </main >
 
       {/* Drawer - Ultra Sleek */}
       {
@@ -1964,6 +1987,6 @@ ${prompt}
           </div>
         )
       }
-    </div>
+    </div >
   );
 }
