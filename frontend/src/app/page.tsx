@@ -99,15 +99,19 @@ export default function DashboardPage() {
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior, block: 'end' });
+    }
+  };
+
   // Auto-scroll effect
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (chatEndRef.current) {
-        chatEndRef.current.scrollIntoView({ behavior: 'auto', block: 'end' });
-      }
-    }, 100);
+    scrollToBottom('smooth');
+    // Segundo scroll de confirmação para renderizações lentas
+    const timer = setTimeout(() => scrollToBottom('auto'), 150);
     return () => clearTimeout(timer);
-  }, [chatMessages, isSendingMessage]);
+  }, [chatMessages, isSendingMessage, isRecording]);
 
   const playAudio = async (chunks: string[], messageIndex?: number) => {
     if (!chunks || chunks.length === 0) return;
@@ -206,6 +210,62 @@ export default function DashboardPage() {
     }
   };
 
+  const handleSendMessage = async (text: string) => {
+    if (!text.trim() || isSendingMessage) return;
+
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setChatMessages(prev => [...prev, { sender: 'user', text, timestamp: now }]);
+    setChatInput('');
+    setIsSendingMessage(true);
+
+    // Scroll imediato ao enviar
+    setTimeout(() => scrollToBottom('smooth'), 50);
+
+    try {
+      const res = await fetch(`${API_PREFIX}/chat/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agentId,
+          message: text,
+          mode: testMode,
+          history: chatMessages.slice(-10).map(m => ({ sender: m.sender, text: m.text }))
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro no servidor");
+
+      const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setChatMessages(prev => [...prev, {
+        sender: 'bot',
+        text: data.text || "Sem resposta.",
+        timestamp: replyTime,
+        isAudio: testMode === 'audio'
+      }]);
+
+      if (testMode === 'audio' && data.audioChunks && data.audioChunks.length > 0) {
+        const botMsgIndex = chatMessages.length + 1;
+        const blobUrl = await playAudio(data.audioChunks, botMsgIndex);
+        if (blobUrl) {
+          setChatMessages(prev => prev.map((m, idx) =>
+            (m.sender === 'bot' && idx === prev.length - 1) ? { ...m, audioSource: blobUrl } : m
+          ));
+        }
+      }
+    } catch (err: any) {
+      console.error("Chat Error:", err);
+      setChatMessages(prev => [...prev, {
+        sender: 'bot',
+        text: `Erro: ${err.message}`,
+        timestamp: now
+      }]);
+    } finally {
+      setIsSendingMessage(false);
+      setTimeout(() => scrollToBottom('smooth'), 50);
+    }
+  };
+
   const cancelRecording = () => {
     if (mediaRecorder && isRecording) {
       mediaRecorder.stop();
@@ -250,6 +310,7 @@ export default function DashboardPage() {
     }]);
 
     setIsSendingMessage(true);
+    setTimeout(() => scrollToBottom('smooth'), 50); // Scroll imediato
     const audioBase64 = await translateAudioToBase64(audioBlob);
 
     // Limpar preview
@@ -1785,45 +1846,8 @@ ${prompt}
                   <input
                     value={chatInput}
                     onChange={e => setChatInput(e.target.value)}
-                    onKeyDown={async e => {
-                      if (e.key === 'Enter' && chatInput.trim() && !isSendingMessage) {
-                        const text = chatInput;
-                        setChatInput('');
-                        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        setChatMessages(prev => [...prev, { sender: 'user', text, timestamp: now }]);
-
-                        setIsSendingMessage(true);
-                        try {
-                          const res = await fetch(`${API_PREFIX}/chat/send`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              agentId,
-                              message: text,
-                              mode: testMode,
-                              history: chatMessages.slice(-10).map(m => ({ sender: m.sender, text: m.text }))
-                            })
-                          });
-                          const data = await res.json();
-                          if (!res.ok) throw new Error(data.error || "Erro no servidor");
-
-                          const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                          setChatMessages(prev => [...prev, {
-                            sender: 'bot',
-                            text: data.text || "Erro ao processar.",
-                            timestamp: replyTime,
-                            isAudio: testMode === 'audio'
-                          }]);
-                          if (testMode === 'audio' && data.audioChunks) {
-                            playAudio(data.audioChunks);
-                          }
-                        } catch (err: any) {
-                          alert(`Erro: ${err.message}`);
-                          setChatMessages(prev => [...prev, { sender: 'bot', text: "Erro de conexão ou processamento.", timestamp: now }]);
-                        } finally {
-                          setIsSendingMessage(false);
-                        }
-                      }
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') handleSendMessage(chatInput);
                     }}
                     type="text"
                     disabled={isRecording}
@@ -1831,46 +1855,7 @@ ${prompt}
                     className="flex-1 bg-transparent px-4 py-2 text-sm font-bold text-slate-700 outline-none placeholder:text-slate-400 disabled:opacity-30"
                   />
                   <button
-                    onClick={async () => {
-                      if (chatInput.trim() && !isSendingMessage) {
-                        const text = chatInput;
-                        setChatInput('');
-                        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        setChatMessages(prev => [...prev, { sender: 'user', text, timestamp: now }]);
-
-                        setIsSendingMessage(true);
-                        try {
-                          const res = await fetch(`${API_PREFIX}/chat/send`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              agentId,
-                              message: text,
-                              mode: testMode,
-                              history: chatMessages.slice(-10).map(m => ({ sender: m.sender, text: m.text }))
-                            })
-                          });
-                          const data = await res.json();
-                          if (!res.ok) throw new Error(data.error || "Erro no servidor");
-
-                          const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                          setChatMessages(prev => [...prev, {
-                            sender: 'bot',
-                            text: data.text || "Erro ao processar.",
-                            timestamp: replyTime,
-                            isAudio: testMode === 'audio'
-                          }]);
-                          if (testMode === 'audio' && data.audioChunks) {
-                            playAudio(data.audioChunks);
-                          }
-                        } catch (err: any) {
-                          alert(`Erro: ${err.message}`);
-                          setChatMessages(prev => [...prev, { sender: 'bot', text: "Erro de conexão ou processamento.", timestamp: now }]);
-                        } finally {
-                          setIsSendingMessage(false);
-                        }
-                      }
-                    }}
+                    onClick={() => handleSendMessage(chatInput)}
                     disabled={isSendingMessage || isRecording || !chatInput.trim()}
                     className="bg-[#3BC671] text-black w-10 h-10 rounded-xl flex items-center justify-center hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-green-500/10 disabled:opacity-50"
                   >
