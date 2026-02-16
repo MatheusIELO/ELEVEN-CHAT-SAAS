@@ -136,7 +136,7 @@ export default function DashboardPage() {
         if (messageIndex !== undefined) {
           setChatMessages(prev => prev.map((m, idx) => idx === messageIndex ? { ...m, isPlaying: false } : m));
         }
-        URL.revokeObjectURL(url);
+        // NÃO revogar imediatamente para permitir replay
       };
 
       return url;
@@ -245,13 +245,23 @@ export default function DashboardPage() {
       }]);
 
       if (testMode === 'audio' && data.audioChunks && data.audioChunks.length > 0) {
-        const botMsgIndex = chatMessages.length + 1;
-        const blobUrl = await playAudio(data.audioChunks, botMsgIndex);
+        const blobUrl = await playAudio(data.audioChunks);
         if (blobUrl) {
-          setChatMessages(prev => prev.map((m, idx) =>
-            (m.sender === 'bot' && idx === prev.length - 1) ? { ...m, audioSource: blobUrl } : m
-          ));
+          setChatMessages(prev => [...prev, {
+            sender: 'bot',
+            text: data.text || "Sem resposta.",
+            timestamp: replyTime,
+            isAudio: true,
+            audioSource: blobUrl
+          }]);
         }
+      } else {
+        setChatMessages(prev => [...prev, {
+          sender: 'bot',
+          text: data.text || "Sem resposta.",
+          timestamp: replyTime,
+          isAudio: testMode === 'audio'
+        }]);
       }
     } catch (err: any) {
       console.error("Chat Error:", err);
@@ -348,7 +358,6 @@ export default function DashboardPage() {
       }
 
       if (data.audioChunks && data.audioChunks.length > 0) {
-        const botMsgIndex = chatMessages.length + 1; // Estimativa do índice
         const blobUrl = await playAudio(data.audioChunks);
         if (blobUrl) {
           setChatMessages(prev => [...prev, {
