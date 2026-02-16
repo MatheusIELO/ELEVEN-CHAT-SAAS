@@ -1383,9 +1383,10 @@ ${prompt}
                       )}
                     </div>
 
+
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Voz do Agente 🎙️</label>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3">
                         {[
                           { id: '21m00Tcm4TlvDq8ikWAM', label: 'Rachel', desc: 'Feminina • Profissional', icon: '👩‍💼' },
                           { id: 'pNInz6obpgDQGcFmaJgB', label: 'Adam', desc: 'Masculina • Brasileira', icon: '🇧🇷' },
@@ -1394,17 +1395,64 @@ ${prompt}
                           { id: 'VR6AewLTigWG4xSOukaG', label: 'Arnold', desc: 'Masculina • Forte', icon: '💪' },
                           { id: 'ThT5KcBeYPX3keUQqHPh', label: 'Dorothy', desc: 'Feminina • Amigável', icon: '😊' },
                         ].map(voice => (
-                          <button
+                          <div
                             key={voice.id}
-                            onClick={() => setVoiceId(voice.id)}
                             className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${voiceId === voice.id ? 'border-[#3BC671] bg-[#3BC671]/5' : 'border-slate-100 bg-white hover:border-slate-200'}`}
                           >
-                            <span className="text-2xl">{voice.icon}</span>
-                            <div className="text-left flex-1">
-                              <p className="text-xs font-bold text-slate-900">{voice.label}</p>
-                              <p className="text-[9px] text-slate-400 font-medium">{voice.desc}</p>
-                            </div>
-                          </button>
+                            <button
+                              onClick={() => setVoiceId(voice.id)}
+                              className="flex items-center gap-3 flex-1"
+                            >
+                              <span className="text-2xl">{voice.icon}</span>
+                              <div className="text-left flex-1">
+                                <p className="text-xs font-bold text-slate-900">{voice.label}</p>
+                                <p className="text-[9px] text-slate-400 font-medium">{voice.desc}</p>
+                              </div>
+                            </button>
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                const btn = e.currentTarget;
+                                const originalHTML = btn.innerHTML;
+
+                                try {
+                                  // Mostrar loading
+                                  btn.innerHTML = '<svg class="w-4 h-4 text-[#3BC671] animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+                                  btn.disabled = true;
+
+                                  const res = await fetch(`${API_PREFIX}/voice/preview`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ voiceId: voice.id })
+                                  });
+
+                                  if (!res.ok) throw new Error('Erro ao gerar preview');
+
+                                  const audioBlob = await res.blob();
+                                  const audioUrl = URL.createObjectURL(audioBlob);
+                                  const audio = new Audio(audioUrl);
+                                  audio.play();
+
+                                  // Restaurar botão quando o áudio terminar
+                                  audio.onended = () => {
+                                    btn.innerHTML = originalHTML;
+                                    btn.disabled = false;
+                                  };
+                                } catch (err) {
+                                  console.error('Erro no preview:', err);
+                                  btn.innerHTML = originalHTML;
+                                  btn.disabled = false;
+                                  alert('Não foi possível reproduzir o preview da voz.');
+                                }
+                              }}
+                              className="p-2 rounded-lg bg-[#3BC671]/10 hover:bg-[#3BC671]/20 transition-colors disabled:opacity-50"
+                              title="Ouvir amostra"
+                            >
+                              <svg className="w-4 h-4 text-[#3BC671]" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                              </svg>
+                            </button>
+                          </div>
                         ))}
                       </div>
                       <p className="text-[9px] text-slate-400 font-medium mt-2 ml-1">
