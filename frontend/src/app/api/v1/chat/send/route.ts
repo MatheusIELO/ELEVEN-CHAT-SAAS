@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getElevenLabsAgentResponse, generateSpeech } from '@/lib/elevenlabs';
+import { getElevenLabsAgentResponse } from '@/lib/elevenlabs';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // 60 segundos para processamento de áudio
@@ -28,6 +28,7 @@ export async function POST(req: Request) {
                 const transcription = await openai.audio.transcriptions.create({
                     file: await OpenAI.toFile(buffer, 'audio.webm'),
                     model: "whisper-1",
+                    language: "pt", // Acelera a transcrição ao evitar detecção de idioma
                 });
 
                 finalMessage = transcription.text;

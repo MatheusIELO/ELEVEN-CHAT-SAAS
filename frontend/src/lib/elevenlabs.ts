@@ -36,19 +36,22 @@ export async function getElevenLabsAgentResponse(
         let isDone = false;
         let hasSentInput = false;
 
-        // Limite de segurança total (18s) - Forçar respostas mais rápidas
+        // Timeout dinâmico: texto é rápido, áudio precisa de mais tempo
+        const timeoutDuration = replyMode === 'audio' ? 25000 : 15000;
+        console.log(`[ElevenLabs] Timeout configurado: ${timeoutDuration}ms para modo ${replyMode}`);
+
         const safetyTimeout = setTimeout(() => {
             if (!isDone) {
-                console.warn("[ElevenLabs] Timeout Crítico (18s). Finalizando conexão.");
+                console.warn(`[ElevenLabs] Timeout (${timeoutDuration}ms) atingido no modo ${replyMode}.`);
                 isDone = true;
                 ws.terminate();
                 if (fullResponse || audioChunks.length > 0) {
-                    resolve({ text: fullResponse.trim() || "Resposta parcial por tempo limite.", audioChunks });
+                    resolve({ text: fullResponse.trim() || "Resposta parcial.", audioChunks });
                 } else {
-                    reject(new Error("A ElevenLabs não respondeu a tempo (Timeout de 18s)."));
+                    reject(new Error(`Timeout: O agente não respondeu em ${timeoutDuration / 1000}s.`));
                 }
             }
-        }, 18000);
+        }, timeoutDuration);
 
         ws.on('open', () => {
             console.log("[ElevenLabs] WebSocket Aberto.");
