@@ -233,7 +233,7 @@ export default function DashboardPage() {
           agentId,
           message: text,
           mode: testMode,
-          history: chatMessages.slice(-10).map(m => ({ sender: m.sender, text: m.text }))
+          history: chatMessages.slice(-3).map(m => ({ sender: m.sender, text: m.text }))
         })
       });
 
@@ -332,7 +332,7 @@ export default function DashboardPage() {
           agentId,
           audio: audioBase64,
           mode: 'audio',
-          history: chatMessages.slice(-10).map(m => ({ sender: m.sender, text: m.text }))
+          history: chatMessages.slice(-3).map(m => ({ sender: m.sender, text: m.text }))
         })
       });
 

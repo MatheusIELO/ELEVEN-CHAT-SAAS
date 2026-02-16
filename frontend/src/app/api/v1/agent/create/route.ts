@@ -38,13 +38,19 @@ export async function POST(req: Request) {
                         5. REGRA CRÍTICA: Suas respostas devem ser CURTAS e OBJETIVAS, com NO MÁXIMO 250 CARACTERES. Seja sempre conciso.
                         
                         CONTEXTO DA EMPRESA:
-                        ${setup.prompt}`,
+                        ${setup.prompt}\n\nMantenha suas respostas curtas, diretas e naturais. O tempo de resposta é crítico, então evite textos longos desnecessários. Responda em no máximo 250 caracteres.`,
                     },
                     first_message: " ", // Forçar espaço para estabilidade
                     language: (setup.language || "pt-br")
                 },
+                asr: {
+                    quality: "high",
+                    provider: "elevenlabs",
+                    user_input_audio_format: "web_midi"
+                },
                 tts: {
                     model_id: "eleven_flash_v2_5",
+                    output_format: "mp3_22050_32",
                     voice_id: setup.voice_id || "21m00Tcm4TlvDq8ikWAM"
                 }
             },

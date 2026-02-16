@@ -31,21 +31,24 @@ export async function POST(req: Request) {
                         - Varie suas respostas. EVITE repetições de frases ou fórmulas prontas.
                         
                         DIRETRIZES DE CONVERSA:
-                        1. NÃO use saudações (como "Olá", "Tudo bem?", "Como posso ajudar?") se a conversa já estiver em andamento. Se o usuário já falou algo anteriormente, vá DIRETO ao assunto da pergunta atual sem introduções desnecessárias.
-                        2. Mantenha respostas curtas e escaneáveis (estilo WhatsApp). No máximo 2 ou 3 frases curtas.
-                        3. Se o usuário perguntar algo que você já respondeu, tente explicar de outra forma mais clara.
-                        4. Seu foco é ser útil e levar o cliente para a conversão ou resolução.
-                        5. REGRA CRÍTICA: Suas respostas devem ser CURTAS e OBJETIVAS, com NO MÁXIMO 250 CARACTERES. Seja sempre conciso.
+                        1. Mantenha respostas curtas e escaneáveis (estilo WhatsApp). No máximo 2 ou 3 frases curtas.
+                        2. Se o usuário perguntar algo que você já respondeu, tente explicar de outra forma mais clara.
+                        3. Seu foco é ser útil e levar o cliente para a conversão ou resolução.
+                        4. REGRA CRÍTICA: Suas respostas devem ser CURTAS e OBJETIVAS, com NO MÁXIMO 250 CARACTERES. Seja sempre conciso.
                         
                         CONTEXTO DA EMPRESA:
-                        ${setup.prompt}`,
+                        ${setup.prompt}
+
+                        REGRAS DE LATÊNCIA:
+                        Mantenha suas respostas curtas, diretas e naturais. O tempo de resposta é crítico, então evite textos longos desnecessários. Responda em no máximo 250 caracteres.`,
                     },
-                    first_message: " ", // Forçar espaço para estabilidade
+                    first_message: " ",
                     language: (setup.language || "pt-br")
                 },
                 tts: {
                     model_id: "eleven_flash_v2_5",
-                    voice_id: setup.voice_id
+                    output_format: "mp3_22050_32",
+                    voice_id: setup.voice_id || "21m00Tcm4TlvDq8ikWAM"
                 }
             }
         };

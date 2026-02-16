@@ -36,19 +36,19 @@ export async function getElevenLabsAgentResponse(
         let isDone = false;
         let hasSentInput = false;
 
-        // Limite de segurança total (28s) - Próximo do limite do Vercel (30s)
+        // Limite de segurança total (18s) - Forçar respostas mais rápidas
         const safetyTimeout = setTimeout(() => {
             if (!isDone) {
-                console.warn("[ElevenLabs] Timeout Crítico (28s). Finalizando conexão.");
+                console.warn("[ElevenLabs] Timeout Crítico (18s). Finalizando conexão.");
                 isDone = true;
-                ws.terminate(); // Terminate é mais agressivo que close()
+                ws.terminate();
                 if (fullResponse || audioChunks.length > 0) {
                     resolve({ text: fullResponse.trim() || "Resposta parcial por tempo limite.", audioChunks });
                 } else {
-                    reject(new Error("A ElevenLabs não respondeu a tempo (Timeout de 28s)."));
+                    reject(new Error("A ElevenLabs não respondeu a tempo (Timeout de 18s)."));
                 }
             }
-        }, 28000);
+        }, 18000);
 
         ws.on('open', () => {
             console.log("[ElevenLabs] WebSocket Aberto.");
@@ -57,7 +57,7 @@ export async function getElevenLabsAgentResponse(
                 type: "conversation_initiation_client_data",
                 conversation_config_override: {
                     agent: { first_message: " " },
-                    tts: { output_format: "mp3_44100_128" },
+                    tts: { output_format: "mp3_22050_32" },
                     conversation: { text_only: replyMode === 'text' }
                 }
             };
@@ -73,11 +73,11 @@ export async function getElevenLabsAgentResponse(
                 if (event.type === "conversation_initiation_metadata") {
                     console.log("[ElevenLabs] Metadata OK. Enviando Mensagem.");
 
-                    // Formatar histórico para o contexto (opcional mas recomendado)
+                    // Contexto mínimo para velocidade máxima
                     let finalInput = message;
                     if (history.length > 0) {
-                        const past = history.slice(-5).map(h => `${h.sender === 'user' ? 'User' : 'Agent'}: ${h.text}`).join("\n");
-                        finalInput = `Histórico:\n${past}\n\nMensagem Atual: ${message}`;
+                        const past = history.slice(-3).map(h => `${h.sender === 'user' ? 'U' : 'A'}: ${h.text}`).join("\n");
+                        finalInput = `Contexto:\n${past}\n\nAtual: ${message}`;
                     }
 
                     ws.send(JSON.stringify({
