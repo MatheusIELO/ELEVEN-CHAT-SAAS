@@ -218,6 +218,10 @@ export default function DashboardPage() {
     setChatInput('');
     setIsSendingMessage(true);
 
+    // Scroll IMEDIATO
+    scrollToBottom('smooth');
+    setTimeout(() => scrollToBottom('smooth'), 100);
+
     // Scroll imediato ao enviar
     setTimeout(() => scrollToBottom('smooth'), 50);
 
@@ -247,6 +251,7 @@ export default function DashboardPage() {
           isAudio: true,
           audioSource: blobUrl || undefined
         }]);
+        setTimeout(() => scrollToBottom('smooth'), 100);
       } else {
         setChatMessages(prev => [...prev, {
           sender: 'bot',
@@ -300,9 +305,8 @@ export default function DashboardPage() {
     if (!audioBlob || isSendingMessage) return;
 
     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const currentAudioUrl = audioUrl;
 
-    // Adicionar mensagem do usuário IMEDIATAMENTE para UX e Scroll
-    const currentAudioUrl = audioUrl; // Capturar o blob url local antes de limpar
     setChatMessages(prev => [...prev, {
       sender: 'user',
       text: "🎤 Mensagem de voz...",
@@ -312,14 +316,15 @@ export default function DashboardPage() {
     }]);
 
     setIsSendingMessage(true);
-    setTimeout(() => scrollToBottom('smooth'), 50); // Scroll imediato
-    const audioBase64 = await translateAudioToBase64(audioBlob);
-
-    // Limpar preview
-    setAudioBlob(null);
-    setAudioUrl(null);
+    scrollToBottom('smooth');
 
     try {
+      const audioBase64 = await translateAudioToBase64(audioBlob);
+
+      // Limpar preview
+      setAudioBlob(null);
+      setAudioUrl(null);
+
       const res = await fetch(`${API_PREFIX}/chat/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -336,7 +341,7 @@ export default function DashboardPage() {
 
       const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-      // Atualizar a última mensagem do usuário com a transcrição se existir
+      // Atualizar a última mensagem do usuário com a transcrição
       if (data.userTranscript) {
         setChatMessages(prev => {
           const newMessages = [...prev];
@@ -351,15 +356,14 @@ export default function DashboardPage() {
 
       if (data.audioChunks && data.audioChunks.length > 0) {
         const blobUrl = await playAudio(data.audioChunks);
-        if (blobUrl) {
-          setChatMessages(prev => [...prev, {
-            sender: 'bot',
-            text: data.text || "Sem resposta em texto.",
-            timestamp: replyTime,
-            isAudio: true,
-            audioSource: blobUrl
-          }]);
-        }
+        setChatMessages(prev => [...prev, {
+          sender: 'bot',
+          text: data.text || "Sem resposta em texto.",
+          timestamp: replyTime,
+          isAudio: true,
+          audioSource: blobUrl || undefined
+        }]);
+        setTimeout(() => scrollToBottom('smooth'), 100);
       } else {
         setChatMessages(prev => [...prev, {
           sender: 'bot',
@@ -369,14 +373,15 @@ export default function DashboardPage() {
         }]);
       }
     } catch (err: any) {
-      alert(`Erro no áudio: ${err.message}`);
+      console.error("Audio Send Error:", err);
       setChatMessages(prev => [...prev, {
         sender: 'bot',
-        text: "Desculpe, houve um erro ao processar seu áudio.",
+        text: `Erro no áudio: ${err.message}`,
         timestamp: now
       }]);
     } finally {
       setIsSendingMessage(false);
+      setTimeout(() => scrollToBottom('smooth'), 100);
     }
   };
 
