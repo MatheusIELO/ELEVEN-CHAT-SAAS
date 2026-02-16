@@ -49,7 +49,7 @@ export async function POST(req: Request) {
                     user_input_audio_format: "web_midi"
                 },
                 tts: {
-                    model_id: "eleven_flash_v2_5",
+                    model_id: "eleven_multilingual_v2", // Melhor para PT-BR
                     output_format: "mp3_22050_32",
                     voice_id: setup.voice_id || "21m00Tcm4TlvDq8ikWAM"
                 }
