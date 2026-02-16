@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getElevenLabsAgentResponse } from '@/lib/elevenlabs';
+import { setPendingResponse } from '@/lib/async-cache';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60; // 60 segundos para processamento de áudio
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
     try {
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
                 const transcription = await openai.audio.transcriptions.create({
                     file: await OpenAI.toFile(buffer, 'audio.webm'),
                     model: "whisper-1",
-                    language: "pt", // Acelera a transcrição ao evitar detecção de idioma
+                    language: "pt",
                 });
 
                 finalMessage = transcription.text;
@@ -52,16 +53,58 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Chave API ElevenLabs não configurada.' }, { status: 500 });
         }
 
-        // 2. Obter resposta da ElevenLabs
+        // 2. Se for áudio, processar de forma ASSÍNCRONA
+        if (mode === 'audio') {
+            const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+            // Marcar como "processando"
+            setPendingResponse(requestId, {
+                status: 'processing',
+                userTranscript
+            });
+
+            // Processar em background (não esperar)
+            (async () => {
+                try {
+                    console.log(`[ChatRoute] Iniciando processamento assíncrono: ${requestId}`);
+                    const response = await getElevenLabsAgentResponse(agentId, finalMessage || " ", apiKey, 'audio', history || []);
+
+                    setPendingResponse(requestId, {
+                        status: 'completed',
+                        text: response.text,
+                        audioChunks: response.audioChunks || [],
+                        userTranscript
+                    });
+                    console.log(`[ChatRoute] Processamento concluído: ${requestId}`);
+                } catch (error: any) {
+                    console.error(`[ChatRoute] Erro no processamento assíncrono: ${requestId}`, error);
+                    setPendingResponse(requestId, {
+                        status: 'error',
+                        error: error.message,
+                        userTranscript
+                    });
+                }
+            })();
+
+            // Retornar imediatamente com o ID da requisição
+            return NextResponse.json({
+                requestId,
+                status: 'processing',
+                userTranscript,
+                message: 'Processando sua mensagem de áudio...'
+            });
+        }
+
+        // 3. Se for texto, processar SÍNCRONAMENTE (rápido)
         try {
             console.log(`[ChatRoute] Conectando ao Agente ${agentId}...`);
             const response = await getElevenLabsAgentResponse(agentId, finalMessage || " ", apiKey, mode || 'text', history || []);
 
-            console.log(`[ChatRoute] Resposta ElevenLabs: Texto=${response.text.length} chars, Chunks=${response.audioChunks?.length || 0}`);
+            console.log(`[ChatRoute] Resposta ElevenLabs: Texto=${response.text.length} chars`);
 
             return NextResponse.json({
                 text: response.text,
-                audioChunks: response.audioChunks || [],
+                audioChunks: [],
                 userTranscript: userTranscript
             });
 
