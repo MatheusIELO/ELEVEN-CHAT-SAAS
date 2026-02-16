@@ -225,71 +225,111 @@ export default function DashboardPage() {
     try {
       // Se for modo TEXTO, usar streaming para latência zero
       if (testMode === 'text') {
+        console.log('[Chat] Iniciando streaming...');
         const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
         // Adicionar mensagem vazia do bot que será preenchida conforme o streaming
-        const botMessageIndex = chatMessages.length + 1;
+        // O índice será o tamanho atual do array, pois o novo item será adicionado ao final
+        const botMessageIndex = chatMessages.length;
         setChatMessages(prev => [...prev, {
           sender: 'bot',
           text: '',
           timestamp: replyTime
         }]);
 
-        const res = await fetch(`${API_PREFIX}/chat/stream`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            agentId,
-            message: text,
-            history: chatMessages.slice(-3).map(m => ({ sender: m.sender, text: m.text }))
-          })
-        });
+        try {
+          const res = await fetch(`${API_PREFIX}/chat/stream`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              agentId,
+              message: text,
+              history: chatMessages.slice(-3).map(m => ({ sender: m.sender, text: m.text }))
+            })
+          });
 
-        if (!res.ok) throw new Error('Erro no streaming');
+          if (!res.ok) throw new Error('Streaming falhou');
 
-        const reader = res.body?.getReader();
-        const decoder = new TextDecoder();
-        let accumulatedText = '';
+          const reader = res.body?.getReader();
+          const decoder = new TextDecoder();
+          let accumulatedText = '';
 
-        if (reader) {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+          if (reader) {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
 
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
+              const chunk = decoder.decode(value);
+              const lines = chunk.split('\n');
 
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                const data = line.slice(6);
-                if (data === '[DONE]') break;
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  const data = line.slice(6);
+                  if (data === '[DONE]') break;
 
-                try {
-                  const parsed = JSON.parse(data);
-                  if (parsed.text) {
-                    accumulatedText += parsed.text;
+                  try {
+                    const parsed = JSON.parse(data);
+                    if (parsed.text) {
+                      accumulatedText += parsed.text;
 
-                    // Atualizar mensagem do bot em tempo real
-                    setChatMessages(prev => {
-                      const newMessages = [...prev];
-                      newMessages[botMessageIndex] = {
-                        ...newMessages[botMessageIndex],
-                        text: accumulatedText
-                      };
-                      return newMessages;
-                    });
+                      // Atualizar mensagem do bot em tempo real
+                      setChatMessages(prev => {
+                        const newMessages = [...prev];
+                        // Usar o índice calculado antes de adicionar a mensagem vazia
+                        newMessages[botMessageIndex] = {
+                          ...newMessages[botMessageIndex],
+                          text: accumulatedText
+                        };
+                        return newMessages;
+                      });
 
-                    scrollToBottom('smooth');
+                      scrollToBottom('smooth');
+                    }
+                  } catch (e) {
+                    console.warn('[Chat] Erro ao parsear chunk:', e);
                   }
-                } catch (e) {
-                  // Ignorar erros de parse
                 }
               }
             }
           }
-        }
 
-        setTimeout(() => scrollToBottom('smooth'), 100);
+          console.log('[Chat] Streaming completo:', accumulatedText);
+
+          // Se não recebeu nada, fazer fallback
+          if (!accumulatedText) {
+            throw new Error('Streaming retornou vazio');
+          }
+
+          setTimeout(() => scrollToBottom('smooth'), 100);
+
+        } catch (streamError: any) {
+          console.error('[Chat] Erro no streaming, usando fallback:', streamError);
+
+          // FALLBACK: Usar endpoint normal
+          const res = await fetch(`${API_PREFIX}/chat/send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              agentId,
+              message: text,
+              mode: 'text',
+              history: chatMessages.slice(-3).map(m => ({ sender: m.sender, text: m.text }))
+            })
+          });
+
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Erro no servidor");
+
+          // Atualizar a mensagem vazia com a resposta do fallback
+          setChatMessages(prev => {
+            const newMessages = [...prev];
+            newMessages[botMessageIndex] = {
+              ...newMessages[botMessageIndex],
+              text: data.text || "Sem resposta."
+            };
+            return newMessages;
+          });
+        }
 
       } else {
         // Modo ÁUDIO - usar endpoint normal
