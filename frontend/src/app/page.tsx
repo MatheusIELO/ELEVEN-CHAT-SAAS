@@ -1383,6 +1383,35 @@ ${prompt}
                         </p>
                       )}
                     </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Voz do Agente 🎙️</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {[
+                          { id: '21m00Tcm4TlvDq8ikWAM', label: 'Rachel', desc: 'Feminina • Profissional', icon: '👩‍💼' },
+                          { id: 'pNInz6obpgDQGcFmaJgB', label: 'Adam', desc: 'Masculina • Brasileira', icon: '🇧🇷' },
+                          { id: 'EXAVITQu4vr4xnSDxMaL', label: 'Bella', desc: 'Feminina • Suave', icon: '✨' },
+                          { id: 'ErXwobaYiN019PkySvjV', label: 'Antoni', desc: 'Masculina • Profissional', icon: '👨‍💼' },
+                          { id: 'VR6AewLTigWG4xSOukaG', label: 'Arnold', desc: 'Masculina • Forte', icon: '💪' },
+                          { id: 'ThT5KcBeYPX3keUQqHPh', label: 'Dorothy', desc: 'Feminina • Amigável', icon: '😊' },
+                        ].map(voice => (
+                          <button
+                            key={voice.id}
+                            onClick={() => setVoiceId(voice.id)}
+                            className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${voiceId === voice.id ? 'border-[#3BC671] bg-[#3BC671]/5' : 'border-slate-100 bg-white hover:border-slate-200'}`}
+                          >
+                            <span className="text-2xl">{voice.icon}</span>
+                            <div className="text-left flex-1">
+                              <p className="text-xs font-bold text-slate-900">{voice.label}</p>
+                              <p className="text-[9px] text-slate-400 font-medium">{voice.desc}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-[9px] text-slate-400 font-medium mt-2 ml-1">
+                        💡 Recomendamos <strong>Adam</strong> ou <strong>Antoni</strong> para melhor pronúncia em PT-BR
+                      </p>
+                    </div>
                   </div>
                 )}
 
