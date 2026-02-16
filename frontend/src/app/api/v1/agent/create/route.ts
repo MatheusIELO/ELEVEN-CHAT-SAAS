@@ -40,10 +40,8 @@ export async function POST(req: Request) {
                         ${setup.prompt}`,
                     },
                     first_message: " ", // Forçar espaço para estabilidade
-                    language: (setup.language || "pt-br").substring(0, 2),
-                    llm: "gpt-4o-mini"
+                    language: (setup.language || "pt-br").substring(0, 2)
                 },
-                llm: "gpt-4o-mini",
                 tts: {
                     model_id: "eleven_flash_v2_5",
                     voice_id: setup.voice_id || "21m00Tcm4TlvDq8ikWAM"
