@@ -337,7 +337,8 @@ export default function DashboardPage() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Erro no processamento");
+
+      const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
       // Atualizar transcrição do usuário
       if (data.userTranscript) {
@@ -352,61 +353,15 @@ export default function DashboardPage() {
         });
       }
 
-      // Se retornou requestId, fazer polling
-      if (data.requestId) {
-        console.log(`[Audio] Processamento assíncrono iniciado: ${data.requestId}`);
-
-        const pollStatus = async () => {
-          const maxAttempts = 60; // 60 segundos máximo
-          let attempts = 0;
-
-          const checkStatus = async (): Promise<void> => {
-            if (attempts >= maxAttempts) {
-              throw new Error("Tempo limite excedido aguardando resposta");
-            }
-
-            attempts++;
-            const statusRes = await fetch(`${API_PREFIX}/chat/status?requestId=${data.requestId}`);
-            const statusData = await statusRes.json();
-
-            if (statusData.status === 'completed') {
-              const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-              if (statusData.audioChunks && statusData.audioChunks.length > 0) {
-                const blobUrl = await playAudio(statusData.audioChunks);
-                setChatMessages(prev => [...prev, {
-                  sender: 'bot',
-                  text: statusData.text || "Sem resposta em texto.",
-                  timestamp: replyTime,
-                  isAudio: true,
-                  audioSource: blobUrl || undefined
-                }]);
-              } else {
-                setChatMessages(prev => [...prev, {
-                  sender: 'bot',
-                  text: statusData.text || "Sem resposta em texto.",
-                  timestamp: replyTime,
-                  isAudio: true
-                }]);
-              }
-              setTimeout(() => scrollToBottom('smooth'), 100);
-              return;
-            } else if (statusData.status === 'error') {
-              throw new Error(statusData.error || "Erro no processamento");
-            } else {
-              // Ainda processando, tentar novamente em 1 segundo
-              await new Promise(resolve => setTimeout(resolve, 1000));
-              return checkStatus();
-            }
-          };
-
-          await checkStatus();
-        };
-
-        await pollStatus();
+      // Adicionar resposta do bot
+      if (!res.ok) {
+        // Mesmo com erro, se tiver transcrição, mostrar mensagem de erro amigável
+        setChatMessages(prev => [...prev, {
+          sender: 'bot',
+          text: data.text || data.error || "Desculpe, ocorreu um erro ao processar sua mensagem.",
+          timestamp: replyTime
+        }]);
       } else {
-        // Resposta síncrona (não deveria acontecer para áudio, mas por segurança)
-        const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         if (data.audioChunks && data.audioChunks.length > 0) {
           const blobUrl = await playAudio(data.audioChunks);
           setChatMessages(prev => [...prev, {
@@ -416,8 +371,17 @@ export default function DashboardPage() {
             isAudio: true,
             audioSource: blobUrl || undefined
           }]);
+        } else {
+          setChatMessages(prev => [...prev, {
+            sender: 'bot',
+            text: data.text || "Sem resposta em texto.",
+            timestamp: replyTime,
+            isAudio: true
+          }]);
         }
       }
+
+      setTimeout(() => scrollToBottom('smooth'), 100);
 
     } catch (err: any) {
       console.error("Audio Send Error:", err);
