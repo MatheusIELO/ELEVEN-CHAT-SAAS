@@ -58,9 +58,19 @@ export async function getElevenLabsAgentResponse(
                     agent: {
                         first_message: " "
                     },
-                    conversation: { text_only: replyMode === 'text' }
+                    conversation: {
+                        text_only: replyMode === 'text'
+                    }
                 }
             };
+
+            // Se for áudio, podemos especificar o formato se necessário, 
+            // mas o padrão da ElevenLabs ConvAI já é otimizado.
+            // No entanto, para garantir compatibilidade com decodeAudioData:
+            if (replyMode === 'audio') {
+                (initiation.conversation_config_override.conversation as any).output_format = "mp3_44100_128";
+            }
+
             ws.send(JSON.stringify(initiation));
         });
 

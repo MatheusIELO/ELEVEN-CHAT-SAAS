@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 const API_PREFIX = "/api/v1";
@@ -94,29 +94,40 @@ export default function DashboardPage() {
 
 
   // Chat Test State (WhatsApp Style)
-  const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'bot', text: string, timestamp: string }>>([]);
+  const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'bot', text: string, timestamp: string, isAudio?: boolean }>>([]);
   const [chatInput, setChatInput] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll effect
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, isSendingMessage]);
 
   const playAudio = async (chunks: string[]) => {
     if (!chunks || chunks.length === 0) return;
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const buffers = await Promise.all(chunks.map(async b64 => {
-        const bin = atob(b64);
-        const arr = new Uint8Array(bin.length);
-        for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-        return audioContext.decodeAudioData(arr.buffer);
-      }));
+      // Concatenar todos os chunks em um único buffer
+      const binaryStrings = chunks.map(b64 => atob(b64));
+      const totalLength = binaryStrings.reduce((acc, str) => acc + str.length, 0);
+      const fullBuffer = new Uint8Array(totalLength);
 
-      let startTime = audioContext.currentTime;
-      buffers.forEach(buffer => {
-        const source = audioContext.createBufferSource();
-        source.buffer = buffer;
-        source.connect(audioContext.destination);
-        source.start(startTime);
-        startTime += buffer.duration;
-      });
+      let offset = 0;
+      for (const bin of binaryStrings) {
+        for (let i = 0; i < bin.length; i++) {
+          fullBuffer[offset++] = bin.charCodeAt(i);
+        }
+      }
+
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const decodedBuffer = await audioContext.decodeAudioData(fullBuffer.buffer);
+
+      const source = audioContext.createBufferSource();
+      source.buffer = decodedBuffer;
+      source.connect(audioContext.destination);
+      source.start(0);
     } catch (err) {
       console.error("Erro ao reproduzir áudio:", err);
     }
@@ -227,11 +238,17 @@ export default function DashboardPage() {
       setChatMessages(prev => [...prev, {
         sender: 'user',
         text: data.userTranscript || "🎤 Mensagem de voz",
-        timestamp: now
+        timestamp: now,
+        isAudio: true
       }]);
 
       const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      setChatMessages(prev => [...prev, { sender: 'bot', text: data.text || "Erro ao processar.", timestamp: replyTime }]);
+      setChatMessages(prev => [...prev, {
+        sender: 'bot',
+        text: data.text || "Erro ao processar.",
+        timestamp: replyTime,
+        isAudio: true
+      }]);
 
       if (data.audioChunks) {
         playAudio(data.audioChunks);
@@ -1578,16 +1595,31 @@ ${prompt}
                     <div className="w-16 h-16 bg-slate-200 rounded-3xl flex items-center justify-center font-black text-2xl italic text-slate-400">11</div>
                     <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Aguardando entrada para simulação</p>
                   </div>
-                ) : chatMessages.map((m, i) => (
-                  <div key={i} className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}>
-                    <div className={`max-w-[85%] space-y-1`}>
-                      <div className={`px-6 py-4 rounded-3xl text-sm font-medium shadow-sm leading-relaxed ${m.sender === 'user' ? 'bg-[#3BC671] text-black rounded-tr-none' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none'}`}>
-                        {m.text}
+                ) : (
+                  <>
+                    {chatMessages.map((m, i) => (
+                      <div key={i} className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}>
+                        <div className={`max-w-[85%] space-y-1`}>
+                          <div className={`px-6 py-4 rounded-3xl text-sm font-medium shadow-sm leading-relaxed flex items-center gap-3 ${m.sender === 'user' ? 'bg-[#3BC671] text-black rounded-tr-none' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none'}`}>
+                            {m.isAudio && (
+                              <div className="w-8 h-8 rounded-full bg-black/5 flex items-center justify-center shrink-0">
+                                <svg className="w-4 h-4 text-black/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" strokeLinecap="round" strokeLinejoin="round" /><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                              </div>
+                            )}
+                            <div className="flex-1">
+                              {m.text}
+                              {m.isAudio && !m.text.includes('🎤') && (
+                                <p className="text-[10px] opacity-40 font-bold mt-1 uppercase tracking-tighter">Áudio Transcrito</p>
+                              )}
+                            </div>
+                          </div>
+                          <p className={`text-[9px] font-black text-slate-400 uppercase tracking-widest px-2 ${m.sender === 'user' ? 'text-right' : 'text-left'}`}>{m.timestamp}</p>
+                        </div>
                       </div>
-                      <p className={`text-[9px] font-black text-slate-400 uppercase tracking-widest px-2 ${m.sender === 'user' ? 'text-right' : 'text-left'}`}>{m.timestamp}</p>
-                    </div>
-                  </div>
-                ))}
+                    ))}
+                    <div ref={chatEndRef} />
+                  </>
+                )}
                 {isSendingMessage && (
                   <div className="flex justify-start animate-in slide-in-from-bottom-2 duration-300">
                     <div className="max-w-[85%] space-y-1">
@@ -1706,7 +1738,12 @@ ${prompt}
                           });
                           const data = await res.json();
                           const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                          setChatMessages(prev => [...prev, { sender: 'bot', text: data.text || "Erro ao processar.", timestamp: replyTime }]);
+                          setChatMessages(prev => [...prev, {
+                            sender: 'bot',
+                            text: data.text || "Erro ao processar.",
+                            timestamp: replyTime,
+                            isAudio: testMode === 'audio'
+                          }]);
                           if (testMode === 'audio' && data.audioChunks) {
                             playAudio(data.audioChunks);
                           }
@@ -1744,7 +1781,12 @@ ${prompt}
                           });
                           const data = await res.json();
                           const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                          setChatMessages(prev => [...prev, { sender: 'bot', text: data.text || "Erro ao processar.", timestamp: replyTime }]);
+                          setChatMessages(prev => [...prev, {
+                            sender: 'bot',
+                            text: data.text || "Erro ao processar.",
+                            timestamp: replyTime,
+                            isAudio: testMode === 'audio'
+                          }]);
                           if (testMode === 'audio' && data.audioChunks) {
                             playAudio(data.audioChunks);
                           }
