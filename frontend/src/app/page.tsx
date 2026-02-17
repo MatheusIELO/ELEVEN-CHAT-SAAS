@@ -1309,25 +1309,26 @@ ${prompt}
                   );
                 })}
 
-                <div className="col-span-full py-32 bg-white rounded-xl border border-slate-100 flex flex-col items-center justify-center text-center px-6 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#3BC671] to-transparent opacity-20"></div>
-                  <div className="w-32 h-32 bg-slate-50 rounded-xl flex items-center justify-center font-black text-5xl italic text-slate-200 mb-8 border border-slate-100 logo-container">
-                    <span className="logo-mascot">
-                      <span className="logo-eye logo-eye-left">1</span>
-                      <span className="logo-eye logo-eye-right">1</span>
-                    </span>
+                {agents.length === 0 && (
+                  <div className="col-span-full py-32 bg-white rounded-xl border border-slate-100 flex flex-col items-center justify-center text-center px-6 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#3BC671] to-transparent opacity-20"></div>
+                    <div className="w-32 h-32 bg-slate-50 rounded-xl flex items-center justify-center font-black text-5xl italic text-slate-200 mb-8 border border-slate-100 logo-container">
+                      <span className="logo-mascot">
+                        <span className="logo-eye logo-eye-left">1</span>
+                        <span className="logo-eye logo-eye-right">1</span>
+                      </span>
+                    </div>
+                    <h4 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-4">Primeira Unidade Pronta?</h4>
+                    <p className="max-w-md text-sm text-slate-400 font-medium leading-relaxed mb-10">
+                      Você ainda não possui agentes ativos. Inicie sua operação criando um agente especializado para seu nicho de mercado.
+                    </p>
+                    <button
+                      onClick={openNewAgentDrawer}
+                      className="bg-[#3BC671] text-black font-black text-[11px] uppercase tracking-[0.2em] px-12 py-5 rounded-full hover:brightness-110 shadow-xl shadow-green-500/20 transition-all active:scale-95"
+                    >
+                      Ativar Primeiro Agente
+                    </button>
                   </div>
-                  <h4 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-4">Primeira Unidade Pronta?</h4>
-                  <p className="max-w-md text-sm text-slate-400 font-medium leading-relaxed mb-10">
-                    Você ainda não possui agentes ativos. Inicie sua operação criando um agente especializado para seu nicho de mercado.
-                  </p>
-                  <button
-                    onClick={openNewAgentDrawer}
-                    className="bg-[#3BC671] text-black font-black text-[11px] uppercase tracking-[0.2em] px-12 py-5 rounded-full hover:brightness-110 shadow-xl shadow-green-500/20 transition-all active:scale-95"
-                  >
-                    Ativar Primeiro Agente
-                  </button>
-                </div>
                 )}
               </div>
             </div>
