@@ -1040,7 +1040,7 @@ ${prompt}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
                 {/* 1. Volume de Conversas */}
-                <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden relative group hover:border-[#3BC671]/30 transition-all">
+                <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm overflow-hidden relative group hover:border-[#3BC671]/30 transition-all">
                   <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                     <svg className="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                   </div>
@@ -1056,7 +1056,7 @@ ${prompt}
                 </div>
 
                 {/* 2. Top Produtos Semanal (Bar Chart) */}
-                <div className="bg-[#0F1115] p-8 rounded-3xl shadow-xl lg:col-span-2">
+                <div className="bg-[#0F1115] p-8 rounded-xl shadow-xl lg:col-span-2">
                   <div className="flex justify-between items-center mb-6">
                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Top Produtos Interresse (Semanal)</p>
                     <div className="px-2 py-1 bg-white/5 rounded text-[9px] font-bold text-slate-400">7 DIAS</div>
@@ -1080,7 +1080,7 @@ ${prompt}
                 </div>
 
                 {/* 3. Top Regiões Semanal (Bar Chart) */}
-                <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm lg:col-span-2">
+                <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm lg:col-span-2">
                   <div className="flex justify-between items-center mb-6">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Distribuição por Região</p>
                   </div>
@@ -1107,7 +1107,7 @@ ${prompt}
                 </div>
 
                 {/* 4. Taxa de Conversão */}
-                <div className="bg-[#0F1115] p-8 rounded-[2rem] shadow-xl relative overflow-hidden group">
+                <div className="bg-[#0F1115] p-8 rounded-xl shadow-xl relative overflow-hidden group">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-[#3BC671] blur-[80px] opacity-20 group-hover:opacity-40 transition-opacity"></div>
                   <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Taxa de Conversão</p>
                   <div>
@@ -1235,14 +1235,14 @@ ${prompt}
                   const isArchived = agent.status === 'archived';
 
                   return (
-                    <div key={agent.id} className={`bg-white border border-slate-200 rounded-[2.5rem] p-8 shadow-sm hover:shadow-xl hover:translate-y-[-4px] transition-all flex flex-col items-center text-center group relative overflow-hidden w-full ${isArchived ? 'grayscale' : ''}`}>
+                    <div key={agent.id} className={`bg-white border border-slate-200 rounded-xl p-8 shadow-sm hover:shadow-xl hover:translate-y-[-4px] transition-all flex flex-col items-center text-center group relative overflow-hidden w-full ${isArchived ? 'grayscale' : ''}`}>
                       {isArchived && (
                         <div className="absolute top-4 left-4 z-10 bg-slate-900 text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest">Inoperante</div>
                       )}
 
                       {/* Colorful Logo 11 */}
                       <div
-                        className="w-20 h-20 rounded-[2rem] flex items-center justify-center font-black text-3xl italic mb-6 shadow-lg transition-transform group-hover:scale-110 logo-container"
+                        className="w-32 h-32 rounded-xl flex items-center justify-center font-black text-5xl italic mb-6 shadow-lg transition-transform group-hover:scale-105 logo-container"
                         style={{ backgroundColor: `${color}15`, color: color, border: `2px solid ${color}30` }}
                       >
                         <span className="logo-mascot">
@@ -1309,26 +1309,25 @@ ${prompt}
                   );
                 })}
 
-                {agents.length === 0 && (
-                  <div className="col-span-full py-32 bg-white rounded-[3rem] border border-slate-100 flex flex-col items-center justify-center text-center px-6 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#3BC671] to-transparent opacity-20"></div>
-                    <div className="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center font-black text-4xl italic text-slate-200 mb-8 border border-slate-100 logo-container">
-                      <span className="logo-mascot">
-                        <span className="logo-eye logo-eye-left">1</span>
-                        <span className="logo-eye logo-eye-right">1</span>
-                      </span>
-                    </div>
-                    <h4 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-4">Primeira Unidade Pronta?</h4>
-                    <p className="max-w-md text-sm text-slate-400 font-medium leading-relaxed mb-10">
-                      Você ainda não possui agentes ativos. Inicie sua operação criando um agente especializado para seu nicho de mercado.
-                    </p>
-                    <button
-                      onClick={openNewAgentDrawer}
-                      className="bg-[#3BC671] text-black font-black text-[11px] uppercase tracking-[0.2em] px-12 py-5 rounded-full hover:brightness-110 shadow-xl shadow-green-500/20 transition-all active:scale-95"
-                    >
-                      Ativar Primeiro Agente
-                    </button>
+                <div className="col-span-full py-32 bg-white rounded-xl border border-slate-100 flex flex-col items-center justify-center text-center px-6 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#3BC671] to-transparent opacity-20"></div>
+                  <div className="w-32 h-32 bg-slate-50 rounded-xl flex items-center justify-center font-black text-5xl italic text-slate-200 mb-8 border border-slate-100 logo-container">
+                    <span className="logo-mascot">
+                      <span className="logo-eye logo-eye-left">1</span>
+                      <span className="logo-eye logo-eye-right">1</span>
+                    </span>
                   </div>
+                  <h4 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-4">Primeira Unidade Pronta?</h4>
+                  <p className="max-w-md text-sm text-slate-400 font-medium leading-relaxed mb-10">
+                    Você ainda não possui agentes ativos. Inicie sua operação criando um agente especializado para seu nicho de mercado.
+                  </p>
+                  <button
+                    onClick={openNewAgentDrawer}
+                    className="bg-[#3BC671] text-black font-black text-[11px] uppercase tracking-[0.2em] px-12 py-5 rounded-full hover:brightness-110 shadow-xl shadow-green-500/20 transition-all active:scale-95"
+                  >
+                    Ativar Primeiro Agente
+                  </button>
+                </div>
                 )}
               </div>
             </div>
