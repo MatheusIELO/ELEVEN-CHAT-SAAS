@@ -43,8 +43,8 @@
 }
 
 .logo-eye-right {
-  animation-delay: 0.15s;
-  /* Efeito "piscar humano" levemente dessincronizado */
+  animation-delay: 0s;
+  /* Sincronizado com o olho esquerdo */
 }
 
 /* Piscar imediato no Hover */
