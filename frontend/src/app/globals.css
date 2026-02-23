@@ -4,18 +4,15 @@
 @keyframes eye-blink {
 
   0%,
-  45%,
-  50%,
-  95%,
+  70%,
+  75%,
   100% {
     transform: scaleY(1);
-    opacity: 1;
   }
 
-  47%,
-  97% {
-    transform: scaleY(0.1);
-    opacity: 0.4;
+  72%,
+  73% {
+    transform: scaleY(0);
   }
 }
 
@@ -28,14 +25,17 @@
 
 .logo-mascot {
   display: inline-flex !important;
-  gap: 0px;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
 }
 
 .logo-eye {
   display: inline-block !important;
+  /* Voltei para inline-block por ser mais previsível com transform */
   transform-origin: center;
-  animation: eye-blink 5s ease-in-out infinite;
+  transform: scaleY(1);
+  animation: eye-blink 2s ease-in-out infinite;
   will-change: transform;
 }
 
@@ -44,8 +44,8 @@
 }
 
 .logo-eye-right {
-  animation-delay: 0s;
-  /* Sincronizado com o olho esquerdo */
+  animation-delay: 0.1s;
+  /* Pequeno atraso para um piscar mais natural */
 }
 
 /* Piscar imediato no Hover */
