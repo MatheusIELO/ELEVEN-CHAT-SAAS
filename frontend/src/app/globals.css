@@ -4,38 +4,38 @@
 @keyframes eye-blink {
 
   0%,
-  70%,
-  75%,
+  93%,
+  95%,
+  97%,
   100% {
     transform: scaleY(1);
+    filter: brightness(1);
   }
 
-  72%,
-  73% {
-    transform: scaleY(0);
+  94%,
+  96% {
+    transform: scaleY(0.1);
+    filter: brightness(0.8);
   }
 }
 
 .logo-container {
-  display: inline-flex !important;
+  display: flex !important;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
 }
 
 .logo-mascot {
-  display: inline-flex !important;
+  display: flex !important;
   align-items: center;
   justify-content: center;
-  line-height: 1;
+  gap: 1px;
 }
 
 .logo-eye {
   display: inline-block !important;
-  /* Voltei para inline-block por ser mais previsível com transform */
   transform-origin: center;
-  transform: scaleY(1);
-  animation: eye-blink 2s ease-in-out infinite;
+  animation: eye-blink 5s ease-in-out infinite;
   will-change: transform;
 }
 
@@ -44,13 +44,12 @@
 }
 
 .logo-eye-right {
-  animation-delay: 0.1s;
-  /* Pequeno atraso para um piscar mais natural */
+  animation-delay: 0s;
 }
 
 /* Piscar imediato no Hover */
 .logo-container:hover .logo-eye {
-  animation: eye-blink 0.4s ease-in-out 1;
+  animation: eye-blink 0.5s ease-in-out 1;
 }
 
 /* Acessibilidade */

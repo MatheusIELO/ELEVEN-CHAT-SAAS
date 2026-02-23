@@ -69,11 +69,11 @@ export default function LoginPage() {
         <div className="min-h-screen bg-[#0F1115] flex items-center justify-center p-6">
             <div className="w-full max-w-md space-y-8 animate-in fade-in zoom-in duration-500">
                 <div className="text-center space-y-4">
-                    <div className="inline-flex items-center justify-center w-20 h-20 bg-[#3BC671] rounded-3xl shadow-2xl shadow-green-500/20 mb-4 logo-container">
-                        <span className="logo-mascot">
-                            <span className="logo-eye logo-eye-left text-black text-4xl font-black italic">1</span>
-                            <span className="logo-eye logo-eye-right text-black text-4xl font-black italic">1</span>
-                        </span>
+                    <div className="inline-flex items-center justify-center w-20 h-20 bg-[#3BC671] rounded-3xl shadow-2xl shadow-green-500/20 mb-4 logo-container group">
+                        <div className="logo-mascot transition-transform group-hover:scale-110 group-active:scale-95">
+                            <span className="logo-eye logo-eye-left text-black text-4xl font-black italic select-none">1</span>
+                            <span className="logo-eye logo-eye-right text-black text-4xl font-black italic select-none">1</span>
+                        </div>
                     </div>
                     <h1 className="text-3xl font-black text-white tracking-tight">Login Administrativo</h1>
                     <p className="text-slate-400 font-medium">Faça login para gerenciar seus agentes de elite</p>
