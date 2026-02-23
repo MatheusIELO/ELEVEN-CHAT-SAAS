@@ -4,18 +4,13 @@
 @keyframes eye-blink {
 
   0%,
-  93%,
-  95%,
-  97%,
+  94%,
   100% {
     transform: scaleY(1) translateZ(0);
-    opacity: 1;
   }
 
-  94%,
-  96% {
-    transform: scaleY(0) translateZ(0);
-    opacity: 0.5;
+  97% {
+    transform: scaleY(0.1) translateZ(0);
   }
 }
 
@@ -36,8 +31,8 @@
 .logo-eye {
   display: inline-block !important;
   transform-origin: center;
-  animation: eye-blink 5s ease-in-out infinite !important;
-  will-change: transform, opacity;
+  animation: eye-blink 6s ease-in-out infinite !important;
+  will-change: transform;
   backface-visibility: hidden;
 }
 
@@ -54,7 +49,6 @@
   animation: eye-blink 0.4s ease-in-out 1 !important;
 }
 
-/* Remover a trava de acessibilidade temporariamente para garantir o render */
 /* @media (prefers-reduced-motion: reduce) { .logo-eye { animation: none !important; } } */
 
 :root {
