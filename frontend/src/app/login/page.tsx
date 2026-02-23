@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { auth } from '@/lib/firebase-client';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -16,29 +18,47 @@ export default function LoginPage() {
         setIsLoading(true);
         setError('');
 
-        // Admin Credentials check
-        if (email === 'matheusdevff@gmail.com' && password === 'Griza1@') {
-            setTimeout(() => {
+        try {
+            // 1. Tentar Login Real via Firebase
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+
+            localStorage.setItem('eleven_user', user.uid);
+            localStorage.setItem('eleven_email', user.email || email);
+
+            setIsLoading(false);
+            router.push('/');
+        } catch (firebaseError: any) {
+            console.warn('Firebase login failed, checking fallback...', firebaseError.code);
+
+            // 2. Fallback para Admin Master Credentials (HARDCODED)
+            if (email === 'matheusdevff@gmail.com' && password === 'Griza1@') {
                 localStorage.setItem('eleven_user', 'admin_master');
                 localStorage.setItem('eleven_email', email);
                 setIsLoading(false);
                 router.push('/');
-            }, 1000);
-            return;
-        }
+                return;
+            }
 
-        // Generic mock for other users (for dev speed)
-        if (email && password.length >= 6) {
-            setTimeout(() => {
+            // 3. Fallback genérico para desenvolvimento (opcional, remova se quiser 100% block)
+            if (email && password.length >= 6 && !process.env.NEXT_PUBLIC_FIREBASE_API_KEY) {
                 const mockUid = btoa(email).slice(0, 10);
                 localStorage.setItem('eleven_user', mockUid);
                 localStorage.setItem('eleven_email', email);
                 setIsLoading(false);
                 router.push('/');
-            }, 1000);
-        } else {
+                return;
+            }
+
+            // Se chegou aqui, falhou tudo
             setIsLoading(false);
-            setError('Credenciais inválidas ou senha muito curta.');
+            if (firebaseError.code === 'auth/invalid-credential' || firebaseError.code === 'auth/user-not-found') {
+                setError('E-mail ou senha incorretos.');
+            } else if (firebaseError.code === 'auth/too-many-requests') {
+                setError('Muitas tentativas. Tente novamente mais tarde.');
+            } else {
+                setError('Erro ao validar acesso. Verifique sua conexão.');
+            }
         }
     };
 
